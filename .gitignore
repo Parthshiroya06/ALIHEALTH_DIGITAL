@@ -47,3 +47,19 @@ yarn-error.log
 
 # Temporary files created by Metro to check the health of the file watcher
 .watchman-*
+
+# Yarn (berry)
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Vendor bracelet SDKs (shared under NDA – never commit)
+android/app/libs/*.aar
+android/app/libs/*.jar
+ios/AliBandSDK/Frameworks/
+
+# Local project notes (client details – keep out of the public repo)
+CLAUDE.md

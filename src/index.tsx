@@ -1,119 +1,27 @@
-import {
-  Text,
-  View,
-  StyleSheet,
-  FlatList,
-  Pressable,
-  TextInput,
-} from 'react-native';
-import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React from 'react';
+import {Provider} from 'react-redux';
+import {persistor, store} from '@store';
+import {PersistGate} from 'redux-persist/integration/react';
 
-interface nameList {
-  id: string;
-  expense: number;
-}
-function AppHome() {
-  const [expence, setExpence] = useState<never[]>([]);
-  const [text, setText] = useState(0);
+import {PaperProvider} from 'react-native-paper';
+import {StackNavigator} from '@navigator';
+import {setI18nConfig} from '@languages';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 
-  const AddExpence = () => {
-    setExpence(previous => [...previous, text]);
-    setText(0);
-  };
-  const renderItemlist = ({ item, index }: any) => {
-    return (
-      <View style={styles.itemList}>
-        <Text>{item}</Text>
-      </View>
-    );
-  };
+setI18nConfig();
 
-  const button = (btnText: string, onPress: any) => {
-    return (
-      <Pressable style={styles.btnSty} onPress={onPress}>
-        <Text style={styles.textStyle}>{btnText}</Text>
-      </Pressable>
-    );
-  };
-
+const App = () => {
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <View style={styles.container}>
-        <View style={styles.btnList}>
-          {button('Filter', () => {})}
-          {button('Expance Clear', () => {
-            setExpence([]);
-          })}
-        </View>
-
-        <TextInput
-          style={styles.textinpout}
-          value={text.toString()}
-          keyboardType="numeric"
-          placeholder="Enter Expance"
-          onChangeText={text => {
-            setText(Number(text));
-          }}
-        />
-        <View>
-          {button('add', () => {
-            AddExpence();
-          })}
-        </View>
-        <View style={{ height: 300 }}>
-          <FlatList
-            data={expence}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={renderItemlist}
-            contentContainerStyle={styles.subContainerSty}
-          />
-        </View>
-      </View>
-    </SafeAreaView>
+    <SafeAreaProvider>
+      <PaperProvider>
+        <Provider store={store}>
+          <PersistGate loading={null} persistor={persistor}>
+            <StackNavigator />
+          </PersistGate>
+        </Provider>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
-}
+};
 
-export default AppHome;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 5,
-  },
-  textFT: {
-    fontSize: 20,
-    marginBottom: 12,
-  },
-  itemList: {
-    width: '90%',
-    height: 20,
-    borderWidth: 1,
-  },
-  subContainerSty: {
-    marginHorizontal: 10,
-    padding: 5,
-  },
-  btnSty: {
-    padding: 5,
-    borderWidth: 1,
-    backgroundColor: '#55bded',
-  },
-  btnList: {
-    justifyContent: 'center',
-    flexDirection: 'row',
-    alignContent: 'space-between',
-    gap: 5,
-  },
-  textStyle: {
-    fontSize: 15,
-    color: 'white',
-  },
-  textinpout: {
-    width: '90%',
-    height: 40,
-    textAlign: 'left',
-    borderWidth: 1,
-    borderColor: 'black',
-  },
-});
+export default App;

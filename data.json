@@ -1,0 +1,112 @@
+[
+  {
+    "id": 1,
+    "name": "Coffee Maker",
+    "category": "Electronics",
+    "price": 372.07,
+    "stock_qty": 62,
+    "rating": 1.9,
+    "tags": [],
+    "created_at": "2025-07-12",
+    "seller_email": "seller2@example.com"
+  },
+  {
+    "id": 2,
+    "name": "Table Tennis Set",
+    "category": "Sports",
+    "price": 20.73,
+    "stock_qty": 23,
+    "rating": 1.9,
+    "tags": [],
+    "created_at": "2025-07-28",
+    "seller_email": "seller4@example.com"
+  },
+  {
+    "id": 3,
+    "name": "Cast Iron Pan",
+    "category": "Sports",
+    "price": 114.12,
+    "stock_qty": 150,
+    "rating": 2.1,
+    "tags": [],
+    "created_at": "2024-06-12",
+    "seller_email": "seller12@example.com"
+  },
+  {
+    "id": 4,
+    "name": "Board Game",
+    "category": "Toys",
+    "price": 142.55,
+    "stock_qty": 55,
+    "rating": 4.8,
+    "tags": ["bestseller", "handmade"],
+    "created_at": "2025-01-24",
+    "seller_email": "seller2@example.com"
+  },
+  {
+    "id": 5,
+    "name": "Office Chair",
+    "category": "Toys",
+    "price": 303.84,
+    "stock_qty": 11,
+    "rating": 3.9,
+    "tags": [],
+    "created_at": "2025-01-22",
+    "seller_email": "seller2@example.com"
+  },
+  {
+    "id": 6,
+    "name": "Cast Iron Pan",
+    "category": "Clothing",
+    "price": 415.56,
+    "stock_qty": 158,
+    "rating": 4.5,
+    "tags": ["eco-friendly", "new"],
+    "created_at": "2024-03-12",
+    "seller_email": "seller1@example.com"
+  },
+  {
+    "id": 7,
+    "name": "Water Bottle",
+    "category": "Clothing",
+    "price": 492.68,
+    "stock_qty": 59,
+    "rating": 4.5,
+    "tags": ["sale", "limited", "handmade"],
+    "created_at": "2024-06-15",
+    "seller_email": "seller6@example.com"
+  },
+  {
+    "id": 8,
+    "name": "Office Chair",
+    "category": "Books",
+    "price": 336.74,
+    "stock_qty": 179,
+    "rating": 4.7,
+    "tags": [],
+    "created_at": "2024-06-24",
+    "seller_email": "seller9@example.com"
+  },
+  {
+    "id": 9,
+    "name": "Water Bottle",
+    "category": "Home & Kitchen",
+    "price": 233.82,
+    "stock_qty": 69,
+    "rating": 5.0,
+    "tags": ["imported"],
+    "created_at": "2024-11-28",
+    "seller_email": "seller14@example.com"
+  },
+  {
+    "id": 10,
+    "name": "Bluetooth Speaker",
+    "category": "Books",
+    "price": 411.79,
+    "stock_qty": 80,
+    "rating": 2.6,
+    "tags": [],
+    "created_at": "2024-08-04",
+    "seller_email": "seller15@example.com"
+  }
+]

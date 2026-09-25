@@ -21,3 +21,30 @@ export interface IHealthReading {
   quality: ReadingQuality;
   source: ReadingSource;
 }
+
+/** Metrics the user can measure on demand from the bracelet. */
+export type MeasurableMetric =
+  | 'heart_rate'
+  | 'spo2'
+  | 'blood_pressure'
+  | 'temperature'
+  | 'glucose'
+  | 'ecg';
+
+export type MeasurementState =
+  | 'idle'
+  | 'measuring'
+  | 'done'
+  | 'stopped'
+  | 'wear_error'
+  | 'low_battery'
+  | 'busy'
+  | 'not_supported'
+  | 'failed';
+
+export interface IMeasurementStatus {
+  type: MeasurableMetric;
+  state: MeasurementState;
+  progress: number | null; // 0-100, null when the band gives no progress
+  value: number | Record<string, number> | null;
+}

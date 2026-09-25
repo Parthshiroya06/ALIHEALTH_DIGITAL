@@ -63,3 +63,6 @@ ios/AliBandSDK/Frameworks/
 
 # Local project notes (client details – keep out of the public repo)
 CLAUDE.md
+
+# H Band SDK native libs (downloaded by `yarn sdk:hband`)
+android/app/src/main/jniLibs/

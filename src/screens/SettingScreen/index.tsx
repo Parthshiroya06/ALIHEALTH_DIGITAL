@@ -1,5 +1,5 @@
 import React from 'react';
-import {Alert, Image, Pressable, ScrollView, Text, View} from 'react-native';
+import {Image, Pressable, ScrollView, Text, View} from 'react-native';
 import {CommonActions, useNavigation, useTheme} from '@react-navigation/native';
 import {useDispatch, useSelector} from 'react-redux';
 import DeviceInfo from 'react-native-device-info';
@@ -7,7 +7,6 @@ import {styles} from './style';
 import {images} from '@assets';
 import {SegmentedControl} from '@components';
 import {languageSelection, storeThemeMode} from '@actions';
-import {reduxTypes} from '@constants';
 import {localize} from '@languages';
 import {textStyle} from '@resources';
 import {ImageKeys, IRootReduxState} from '@types';
@@ -19,24 +18,9 @@ const SettingScreen = () => {
   const colors = useTheme().colors;
   const navigation = useNavigation();
   const dispatch = useDispatch();
-  const {themeMode, language_code, profileDetails} = useSelector(
+  const {themeMode, language_code} = useSelector(
     (state: IRootReduxState) => state.userDetails,
   );
-
-  const signOut = () => {
-    Alert.alert(localize('signout'), localize('sigOut_message'), [
-      {text: localize('cancel'), style: 'cancel'},
-      {
-        text: localize('yes'),
-        onPress: () => {
-          dispatch({type: reduxTypes.RESET_DATA});
-          navigation.dispatch(
-            CommonActions.reset({index: 0, routes: [{name: 'LoginScreen'}]}),
-          );
-        },
-      },
-    ]);
-  };
 
   const row = (
     title: string,
@@ -69,10 +53,6 @@ const SettingScreen = () => {
       style={{backgroundColor: colors.background}}
       contentContainerStyle={styles.container}
     >
-      <Text style={[textStyle(18, 'Roboto200'), {color: colors.text}]}>
-        {profileDetails?.name ?? profileDetails?.email ?? ''}
-      </Text>
-
       <Text style={[textStyle(14), {color: colors.secondaryText}]}>
         {localize('appearance')}
       </Text>
@@ -116,7 +96,6 @@ const SettingScreen = () => {
           undefined,
           DeviceInfo.getVersion(),
         )}
-        {row(localize('signout'), 'ic_signout', signOut)}
       </View>
     </ScrollView>
   );

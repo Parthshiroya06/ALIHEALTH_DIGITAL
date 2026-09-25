@@ -13,22 +13,39 @@ const initialValue = {
   syncQueue: [] as IHealthReading[], // offline queue, persisted until uploaded
   lastSyncAt: null as string | null,
 };
+const withLatest = (
+  latest: Partial<Record<MetricType, IHealthReading>>,
+  readings: IHealthReading[],
+) => {
+  const next = {...latest};
+  readings.forEach(reading => {
+    const current = next[reading.type];
+    if (!current || current.timestamp <= reading.timestamp) {
+      next[reading.type] = reading;
+    }
+  });
+  return next;
+};
+
 export const healthData = (state = initialValue, action: IAction) => {
   switch (action.type) {
     case reduxTypes.ADD_READINGS: {
-      const latest = {...state.latest};
-      action.readings.forEach(reading => {
-        const current = latest[reading.type];
-        if (!current || current.timestamp <= reading.timestamp) {
-          latest[reading.type] = reading;
-        }
-      });
+      // Skip readings already waiting in the queue (same clientId)
+      const queued = new Set(state.syncQueue.map(reading => reading.clientId));
+      const newReadings = action.readings.filter(
+        reading => !queued.has(reading.clientId),
+      );
       return {
         ...state,
-        latest,
-        syncQueue: [...state.syncQueue, ...action.readings],
+        latest: withLatest(state.latest, action.readings),
+        syncQueue: [...state.syncQueue, ...newReadings],
       };
     }
+    case reduxTypes.SET_LATEST_READINGS:
+      return {
+        ...state,
+        latest: withLatest(state.latest, action.readings),
+      };
     case reduxTypes.REMOVE_SYNCED_READINGS:
       return {
         ...state,

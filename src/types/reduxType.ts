@@ -1,20 +1,13 @@
 import {
   ConnectionState,
   IDeviceCapabilities,
+  IDeviceInfo,
   IWearableDevice,
 } from './deviceType';
 import {IHealthReading, MetricType} from './healthType';
 
-export interface IProfileDetails {
-  name?: string | null;
-  email?: string | null;
-  photoUrl?: string | null;
-  uid?: string | null;
-}
 export interface IRootReduxState {
   userDetails: {
-    isLogin: boolean;
-    profileDetails: IProfileDetails;
     authToken: string | null;
     themeMode: string;
     language_code: string;
@@ -23,6 +16,8 @@ export interface IRootReduxState {
     pairedDevice: IWearableDevice | null;
     connectionState: ConnectionState;
     capabilities: IDeviceCapabilities;
+    deviceInfo: IDeviceInfo;
+    historySyncedAt: string | null;
   };
   healthData: {
     latest: Partial<Record<MetricType, IHealthReading>>;

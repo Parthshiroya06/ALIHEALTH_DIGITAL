@@ -1,0 +1,18 @@
+{
+  "name": "react-native-aliband-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nitro module wrapping the H Band (Veepoo) bracelet SDK for the ALIHEALTH app",
+  "main": "src/index",
+  "react-native": "src/index",
+  "source": "src/index",
+  "types": "src/index.ts",
+  "scripts": {
+    "nitrogen": "nitrogen"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*",
+    "react-native-nitro-modules": "*"
+  }
+}

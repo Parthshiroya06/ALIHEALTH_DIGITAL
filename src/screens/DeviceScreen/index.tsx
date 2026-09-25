@@ -3,17 +3,26 @@ import {Alert, FlatList, Text, View} from 'react-native';
 import {CommonActions, useNavigation, useTheme} from '@react-navigation/native';
 import {styles} from './style';
 import {CommonButton, DeviceListItem} from '@components';
-import {useWearable} from '@hooks';
+import {useLanguage, useWearable} from '@hooks';
 import {localize} from '@languages';
 import {Colors, textStyle} from '@resources';
-import {detectDeviceFamily, startScan, stopScan} from '@services';
-import {IWearableDevice} from '@types';
+import {detectDeviceFamily, HBandAdapter, startScan, stopScan} from '@services';
+import {DeviceFamily, IWearableDevice} from '@types';
 
 const DeviceScreen = () => {
   const colors = useTheme().colors;
+  useLanguage();
   const navigation = useNavigation();
-  const {pairedDevice, connectionState, capabilities, connect, disconnect} =
-    useWearable();
+  const {
+    pairedDevice,
+    connectionState,
+    capabilities,
+    deviceInfo,
+    isSyncingHistory,
+    connect,
+    disconnect,
+    syncDeviceHistory,
+  } = useWearable();
 
   const [devices, setDevices] = useState<IWearableDevice[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -41,7 +50,7 @@ const DeviceScreen = () => {
               id: device.id,
               name: name,
               rssi: device.rssi,
-              family: detectDeviceFamily(name),
+              family: detectDeviceFamily(name, device.serviceUUIDs),
             },
           ]);
         },
@@ -56,11 +65,39 @@ const DeviceScreen = () => {
     }
   };
 
-  const onConnect = async (device: IWearableDevice) => {
+  const connectAs = async (device: IWearableDevice, family: DeviceFamily) => {
+    try {
+      await connect({...device, family});
+    } catch (error: any) {
+      Alert.alert(localize('bluetooth_error'), error?.message);
+    }
+  };
+
+  const onConnect = (device: IWearableDevice) => {
+    stopScanRef.current?.();
     stopScan();
     setIsScanning(false);
+    // Unknown band: let the tester pick the vendor SDK or standard BLE (POC)
+    if (device.family === 'generic_ble' && HBandAdapter.isAvailable()) {
+      Alert.alert(localize('connect_as'), device.name ?? device.id, [
+        {text: localize('cancel'), style: 'cancel'},
+        {
+          text: localize('standard_ble'),
+          onPress: () => connectAs(device, 'generic_ble'),
+        },
+        {
+          text: localize('hband_sdk'),
+          onPress: () => connectAs(device, 'hband'),
+        },
+      ]);
+      return;
+    }
+    connectAs(device, device.family);
+  };
+
+  const onSyncHistory = async () => {
     try {
-      await connect(device);
+      await syncDeviceHistory();
     } catch (error: any) {
       Alert.alert(localize('bluetooth_error'), error?.message);
     }
@@ -85,13 +122,32 @@ const DeviceScreen = () => {
             {capabilities.map(metric => localize(metric)).join(', ')}
           </Text>
         )}
+        {(deviceInfo.firmwareVersion || deviceInfo.batteryPercent != null) && (
+          <Text style={[textStyle(12), {color: colors.secondaryText}]}>
+            {deviceInfo.firmwareVersion
+              ? `${localize('firmware')} ${deviceInfo.firmwareVersion}`
+              : ''}
+            {deviceInfo.batteryPercent != null
+              ? ` · ${localize('battery')} ${deviceInfo.batteryPercent}%`
+              : ''}
+          </Text>
+        )}
         {connectionState === 'connected' && (
-          <CommonButton
-            title={localize('disconnect')}
-            onPress={disconnect}
-            buttonStyle={styles.smallButton}
-            TitleStyle={{color: Colors.offWhite}}
-          />
+          <View style={styles.row}>
+            <CommonButton
+              title={localize('sync_bracelet')}
+              onPress={onSyncHistory}
+              isLoading={isSyncingHistory}
+              buttonStyle={styles.smallButton}
+              TitleStyle={{color: Colors.offWhite}}
+            />
+            <CommonButton
+              title={localize('disconnect')}
+              onPress={disconnect}
+              buttonStyle={styles.smallButton}
+              TitleStyle={{color: Colors.offWhite}}
+            />
+          </View>
         )}
       </View>
 

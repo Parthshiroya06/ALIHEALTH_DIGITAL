@@ -1,25 +1,38 @@
 import {reduxTypes} from '@constants';
-import {ConnectionState, IDeviceCapabilities, IWearableDevice} from '@types';
+import {
+  ConnectionState,
+  IDeviceCapabilities,
+  IDeviceInfo,
+  IWearableDevice,
+} from '@types';
 
 interface IAction {
   type: string;
   pairedDevice: IWearableDevice | null;
   connectionState: ConnectionState;
   capabilities: IDeviceCapabilities;
+  deviceInfo: IDeviceInfo;
+  historySyncedAt: string;
 }
 
 const initialValue = {
   pairedDevice: null as IWearableDevice | null,
   connectionState: 'disconnected' as ConnectionState,
   capabilities: [] as IDeviceCapabilities,
+  deviceInfo: {} as IDeviceInfo,
+  historySyncedAt: null as string | null, // newest history reading already imported
 };
 export const deviceDetails = (state = initialValue, action: IAction) => {
   switch (action.type) {
-    case reduxTypes.PAIRED_DEVICE:
+    case reduxTypes.PAIRED_DEVICE: {
+      const isSameDevice = state.pairedDevice?.id === action.pairedDevice?.id;
       return {
         ...state,
         pairedDevice: action.pairedDevice,
+        deviceInfo: isSameDevice ? state.deviceInfo : {},
+        historySyncedAt: isSameDevice ? state.historySyncedAt : null,
       };
+    }
     case reduxTypes.CONNECTION_STATE:
       return {
         ...state,
@@ -29,6 +42,16 @@ export const deviceDetails = (state = initialValue, action: IAction) => {
       return {
         ...state,
         capabilities: action.capabilities,
+      };
+    case reduxTypes.DEVICE_INFO:
+      return {
+        ...state,
+        deviceInfo: action.deviceInfo,
+      };
+    case reduxTypes.HISTORY_SYNCED_AT:
+      return {
+        ...state,
+        historySyncedAt: action.historySyncedAt,
       };
     case reduxTypes.RESET_DATA:
       return initialValue;

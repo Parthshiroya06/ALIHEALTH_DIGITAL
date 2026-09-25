@@ -1,5 +1,9 @@
 import {healthData} from '../src/reducers/healthData';
-import {addReadings, removeSyncedReadings} from '../src/actions/Health';
+import {
+  addReadings,
+  removeSyncedReadings,
+  storeLatestReadings,
+} from '../src/actions/Health';
 import {IHealthReading} from '../src/types/healthType';
 
 const reading = (
@@ -41,5 +45,31 @@ describe('healthData reducer', () => {
     );
     state = healthData(state, removeSyncedReadings(['a']) as any);
     expect(state.syncQueue.map(r => r.clientId)).toEqual(['b']);
+  });
+});
+
+describe('healthData reducer – history dedup', () => {
+  it('does not queue a reading twice', () => {
+    let state = healthData(
+      undefined,
+      addReadings([reading('a', '2026-09-24T08:00:00Z', 70)]) as any,
+    );
+    state = healthData(
+      state,
+      addReadings([
+        reading('a', '2026-09-24T08:00:00Z', 70),
+        reading('b', '2026-09-24T08:30:00Z', 72),
+      ]) as any,
+    );
+    expect(state.syncQueue.map(r => r.clientId)).toEqual(['a', 'b']);
+  });
+
+  it('updates the dashboard without queueing snapshot readings', () => {
+    const state = healthData(
+      undefined,
+      storeLatestReadings([reading('s', '2026-09-24T10:00:00Z', 90)]) as any,
+    );
+    expect(state.latest.heart_rate?.value).toBe(90);
+    expect(state.syncQueue).toHaveLength(0);
   });
 });

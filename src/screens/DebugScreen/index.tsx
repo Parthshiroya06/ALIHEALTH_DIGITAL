@@ -3,6 +3,7 @@ import {ScrollView, Text, View} from 'react-native';
 import {useTheme} from '@react-navigation/native';
 import {useSelector} from 'react-redux';
 import {styles} from './style';
+import {useDebugLog, useLanguage} from '@hooks';
 import {localize} from '@languages';
 import {textStyle} from '@resources';
 import {IRootReduxState} from '@types';
@@ -15,12 +16,15 @@ const RECENT_READINGS = 20;
  */
 const DebugScreen = () => {
   const colors = useTheme().colors;
+  useLanguage();
   const deviceDetails = useSelector(
     (state: IRootReduxState) => state.deviceDetails,
   );
   const {syncQueue} = useSelector((state: IRootReduxState) => state.healthData);
+  const logLines = useDebugLog();
 
   const sections = [
+    {title: localize('debug_log'), data: logLines},
     {title: localize('device_state'), data: deviceDetails},
     {
       title: localize('recent_readings'),

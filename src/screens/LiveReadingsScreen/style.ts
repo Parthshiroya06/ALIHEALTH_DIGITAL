@@ -10,7 +10,13 @@ const styles = StyleSheet.create({
     padding: responsiveWidth(5),
     borderRadius: responsiveWidth(3),
     alignItems: 'center',
-    gap: responsiveHeight(1),
+    gap: responsiveHeight(0.8),
+  },
+  button: {
+    width: responsiveWidth(40),
+  },
+  disabled: {
+    opacity: 0.4,
   },
 });
 

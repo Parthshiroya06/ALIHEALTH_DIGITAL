@@ -15,6 +15,10 @@ const styles = StyleSheet.create({
     width: responsiveWidth(40),
     alignSelf: 'flex-start',
   },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
   list: {
     paddingVertical: responsiveHeight(2),
     gap: responsiveHeight(1),

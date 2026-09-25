@@ -4,7 +4,7 @@ import {useTheme} from '@react-navigation/native';
 import {useSelector} from 'react-redux';
 import {styles} from './style';
 import {CommonButton} from '@components';
-import {useHealthSync} from '@hooks';
+import {useHealthSync, useLanguage} from '@hooks';
 import {localize} from '@languages';
 import {Colors, textStyle} from '@resources';
 import {IHealthReading, IRootReduxState} from '@types';
@@ -12,6 +12,7 @@ import {formatReadingValue} from '@utils';
 
 const SyncStatusScreen = () => {
   const colors = useTheme().colors;
+  useLanguage();
   const {syncQueue} = useSelector((state: IRootReduxState) => state.healthData);
   const {pendingCount, lastSyncAt, isSyncing, syncNow} = useHealthSync();
 

@@ -1,8 +1,7 @@
 import React, {useEffect} from 'react';
 import {Text, View} from 'react-native';
 import {styles} from './style';
-import {IRootReduxState} from '@types';
-import {useDispatch, useSelector} from 'react-redux';
+import {useDispatch} from 'react-redux';
 
 import {textStyle} from '@resources';
 import {localize} from '@languages';
@@ -12,8 +11,6 @@ import {storeConnectionState} from '@actions';
 const SplashScreen = () => {
   const colors = useTheme().colors;
   const dispatch = useDispatch();
-  const {isLogin} = useSelector((state: IRootReduxState) => state.userDetails);
-
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -24,12 +21,12 @@ const SplashScreen = () => {
       navigation.dispatch(
         CommonActions.reset({
           index: 0,
-          routes: [{name: isLogin ? 'BottomTabBar' : 'LoginScreen'}],
+          routes: [{name: 'BottomTabBar'}],
         }),
       );
     }, 2000);
     return () => clearTimeout(timer);
-  }, [dispatch, navigation, isLogin]);
+  }, [dispatch, navigation]);
 
   return (
     <View style={[styles.container, {backgroundColor: colors.background}]}>

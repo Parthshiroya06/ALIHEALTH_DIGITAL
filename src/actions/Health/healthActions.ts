@@ -7,6 +7,13 @@ export const addReadings = (readings: IHealthReading[]) => {
     readings: readings,
   };
 };
+/** Updates the dashboard only; these readings are not uploaded. */
+export const storeLatestReadings = (readings: IHealthReading[]) => {
+  return {
+    type: reduxTypes.SET_LATEST_READINGS,
+    readings: readings,
+  };
+};
 export const removeSyncedReadings = (clientIds: string[]) => {
   return {
     type: reduxTypes.REMOVE_SYNCED_READINGS,

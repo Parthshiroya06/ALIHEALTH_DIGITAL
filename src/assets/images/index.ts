@@ -1,6 +1,4 @@
 export const images = {
-  ic_signout: require('./icons/ic_signout.png'),
-
   // tab icons screen icons
   ic_home: require('./tabIcon/ic_home.png'),
   ic_setting: require('./tabIcon/ic_setting.png'),

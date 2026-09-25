@@ -1,67 +1,123 @@
-import {useCallback, useEffect, useRef} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
+import {useCallback, useState} from 'react';
+import {useDispatch, useSelector, useStore} from 'react-redux';
 import {
   addReadings,
   storeCapabilities,
   storeConnectionState,
+  storeDeviceInfo,
+  storeHistorySyncedAt,
+  storeLatestReadings,
   storePairedDevice,
 } from '@actions';
-import {getAdapter, WearableAdapter} from '@services';
+import {
+  addDebugLog,
+  getActiveAdapter,
+  getAdapter,
+  setActiveAdapter,
+  WearableAdapter,
+} from '@services';
 import {IRootReduxState, IWearableDevice} from '@types';
 
 /**
- * Connects to a bracelet through the matching WearableAdapter,
- * stores capabilities and pushes live readings into Redux.
+ * Connects to a bracelet through the matching WearableAdapter, stores its
+ * capabilities, pushes live readings into Redux and imports its history.
+ * The connection lives in wearableSession, so every screen shares it.
  */
 export const useWearable = () => {
   const dispatch = useDispatch();
-  const {pairedDevice, connectionState, capabilities} = useSelector(
+  const store = useStore<IRootReduxState>();
+  const {pairedDevice, connectionState, capabilities, deviceInfo} = useSelector(
     (state: IRootReduxState) => state.deviceDetails,
   );
-  const adapterRef = useRef<WearableAdapter | null>(null);
-  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const [isSyncingHistory, setIsSyncingHistory] = useState(false);
+
+  const importHistory = useCallback(
+    async (adapter: WearableAdapter) => {
+      setIsSyncingHistory(true);
+      try {
+        const {historySyncedAt} = store.getState().deviceDetails;
+        const history = await adapter.syncHistory(historySyncedAt);
+        if (history.length) {
+          dispatch(addReadings(history));
+          const newest = history.reduce(
+            (max, reading) =>
+              reading.timestamp > max ? reading.timestamp : max,
+            history[0].timestamp,
+          );
+          dispatch(storeHistorySyncedAt(newest));
+        }
+        const snapshot = (await adapter.readSnapshot?.()) ?? [];
+        if (snapshot.length) {
+          dispatch(storeLatestReadings(snapshot));
+        }
+      } finally {
+        setIsSyncingHistory(false);
+      }
+    },
+    [dispatch, store],
+  );
 
   const disconnect = useCallback(async () => {
-    unsubscribeRef.current?.();
-    unsubscribeRef.current = null;
-    await adapterRef.current?.disconnect();
-    adapterRef.current = null;
-    dispatch(storeConnectionState('disconnected'));
+    const adapter = getActiveAdapter();
+    setActiveAdapter(null);
+    try {
+      await adapter?.disconnect();
+    } finally {
+      dispatch(storeConnectionState('disconnected'));
+    }
   }, [dispatch]);
 
   const connect = useCallback(
     async (device: IWearableDevice) => {
       await disconnect();
       dispatch(storeConnectionState('connecting'));
+      const adapter = getAdapter(device.family);
       try {
-        const adapter = getAdapter(device.family);
         await adapter.connect(device.id);
-        adapterRef.current = adapter;
-
         dispatch(storePairedDevice(device));
         dispatch(storeCapabilities(await adapter.getCapabilities()));
+        dispatch(storeDeviceInfo((await adapter.getDeviceInfo?.()) ?? {}));
+        setActiveAdapter(adapter, [
+          adapter.subscribeRealtime(readings =>
+            dispatch(addReadings(readings)),
+          ),
+          adapter.subscribeConnection?.(state =>
+            dispatch(storeConnectionState(state)),
+          ) ?? (() => {}),
+        ]);
         dispatch(storeConnectionState('connected'));
-
-        unsubscribeRef.current = adapter.subscribeRealtime(readings =>
-          dispatch(addReadings(readings)),
-        );
-        const history = await adapter.syncHistory();
-        if (history.length) {
-          dispatch(addReadings(history));
-        }
       } catch (error) {
+        setActiveAdapter(null);
+        await adapter.disconnect().catch(() => undefined);
         dispatch(storeConnectionState('disconnected'));
         throw error;
       }
+      // A failed history read should not drop the connection
+      try {
+        await importHistory(adapter);
+      } catch (error: any) {
+        addDebugLog(`history sync failed: ${error?.message}`);
+      }
     },
-    [disconnect, dispatch],
+    [disconnect, dispatch, importHistory],
   );
 
-  useEffect(() => {
-    return () => {
-      unsubscribeRef.current?.();
-    };
-  }, []);
+  /** Re-reads the bracelet's stored history (steps, sleep, HR, ...). */
+  const syncDeviceHistory = useCallback(async () => {
+    const adapter = getActiveAdapter();
+    if (adapter) {
+      await importHistory(adapter);
+    }
+  }, [importHistory]);
 
-  return {pairedDevice, connectionState, capabilities, connect, disconnect};
+  return {
+    pairedDevice,
+    connectionState,
+    capabilities,
+    deviceInfo,
+    isSyncingHistory,
+    connect,
+    disconnect,
+    syncDeviceHistory,
+  };
 };

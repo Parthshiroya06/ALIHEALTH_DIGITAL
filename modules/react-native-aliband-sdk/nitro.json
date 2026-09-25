@@ -1,0 +1,25 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": ["alibandsdk"],
+  "ios": {
+    "iosModuleName": "AliBandSdk"
+  },
+  "android": {
+    "androidNamespace": ["alibandsdk"],
+    "androidCxxLibName": "AliBandSdk"
+  },
+  "autolinking": {
+    "AliBandSdk": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridAliBandSdk"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridAliBandSdk"
+      }
+    }
+  },
+  "ignorePaths": ["**/node_modules"],
+  "gitAttributesGeneratedFlag": true
+}

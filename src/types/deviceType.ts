@@ -15,3 +15,10 @@ export interface IWearableDevice {
   family: DeviceFamily;
 }
 export type IDeviceCapabilities = MetricType[];
+
+export interface IDeviceInfo {
+  deviceNumber?: number;
+  firmwareVersion?: string;
+  watchDays?: number;
+  batteryPercent?: number;
+}

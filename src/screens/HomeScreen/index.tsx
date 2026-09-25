@@ -4,11 +4,11 @@ import {CommonActions, useNavigation, useTheme} from '@react-navigation/native';
 import {useSelector} from 'react-redux';
 import {styles} from './style';
 import {CommonButton, MetricCard} from '@components';
-import {useHealthSync} from '@hooks';
+import {useHealthSync, useLanguage} from '@hooks';
 import {localize} from '@languages';
 import {Colors, textStyle} from '@resources';
 import {IRootReduxState, MetricType} from '@types';
-import {formatReadingValue} from '@utils';
+import {formatMetricUnit, formatReadingValue} from '@utils';
 
 const METRICS: MetricType[] = [
   'heart_rate',
@@ -23,6 +23,7 @@ const METRICS: MetricType[] = [
 
 const HomeScreen = () => {
   const colors = useTheme().colors;
+  useLanguage();
   const navigation = useNavigation();
   const {latest} = useSelector((state: IRootReduxState) => state.healthData);
   const {connectionState, pairedDevice} = useSelector(
@@ -46,7 +47,7 @@ const HomeScreen = () => {
             key={metric}
             title={localize(metric)}
             value={formatReadingValue(latest[metric])}
-            unit={latest[metric]?.unit}
+            unit={formatMetricUnit(metric, latest[metric]?.unit)}
             isEstimated={latest[metric]?.quality === 'estimated'}
           />
         ))}

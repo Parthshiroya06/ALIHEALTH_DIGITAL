@@ -1,5 +1,10 @@
 import {reduxTypes} from '@constants';
-import {ConnectionState, IDeviceCapabilities, IWearableDevice} from '@types';
+import {
+  ConnectionState,
+  IDeviceCapabilities,
+  IDeviceInfo,
+  IWearableDevice,
+} from '@types';
 
 export const storePairedDevice = (pairedDevice: IWearableDevice | null) => {
   return {
@@ -17,5 +22,17 @@ export const storeCapabilities = (capabilities: IDeviceCapabilities) => {
   return {
     type: reduxTypes.DEVICE_CAPABILITIES,
     capabilities: capabilities,
+  };
+};
+export const storeDeviceInfo = (deviceInfo: IDeviceInfo) => {
+  return {
+    type: reduxTypes.DEVICE_INFO,
+    deviceInfo: deviceInfo,
+  };
+};
+export const storeHistorySyncedAt = (historySyncedAt: string) => {
+  return {
+    type: reduxTypes.HISTORY_SYNCED_AT,
+    historySyncedAt: historySyncedAt,
   };
 };

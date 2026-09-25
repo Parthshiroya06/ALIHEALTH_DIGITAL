@@ -1,18 +1,6 @@
 import {reduxTypes} from '@constants';
-import {IProfileDetails} from '@types';
+import {changeLanguage} from '@languages';
 
-export const isUserLogin = (isLogin: boolean) => {
-  return {
-    type: reduxTypes.IS_USER_LOGIN,
-    isLogin: isLogin,
-  };
-};
-export const profileDetails = (profileDetail: IProfileDetails) => {
-  return {
-    type: reduxTypes.PROFILE_DATA,
-    profileDetails: profileDetail,
-  };
-};
 export const storeAuthToken = (authToken: string | null) => {
   return {
     type: reduxTypes.AUTH_TOKEN,
@@ -27,6 +15,8 @@ export const storeThemeMode = (themeMode: string) => {
 };
 
 export const languageSelection = (language_code: string) => {
+  // Switch before the state update so screens re-render with the new language
+  changeLanguage(language_code);
   return {
     type: reduxTypes.LANGUAGE_CODE,
     language_code: language_code,

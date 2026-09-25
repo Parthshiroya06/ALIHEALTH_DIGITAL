@@ -1,7 +1,6 @@
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 
 export type RootStackParamList = {
-  LoginScreen: undefined;
   SplashScreen: undefined;
   BottomTabBar: undefined;
   WebViewScreen: {url: string; title?: string};
@@ -16,11 +15,6 @@ export type BottomTabBarParamList = {
 };
 export type RootStackNavigatorProps =
   NativeStackNavigationProp<RootStackParamList>;
-
-export type LoginScreenNavigatorProps = NativeStackNavigationProp<
-  RootStackParamList,
-  'LoginScreen'
->;
 
 export type SplashScreenNavigatorProps = NativeStackNavigationProp<
   RootStackParamList,

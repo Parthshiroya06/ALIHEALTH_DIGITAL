@@ -7,12 +7,15 @@ import {images} from '@assets';
 import {responsiveHeight, responsiveWidth} from '@resources';
 import {isIpad} from '@utils';
 import {useTheme} from '@react-navigation/native';
+import {useLanguage} from '@hooks';
 import {localize} from '@languages';
 
 const BottomTab = createBottomTabNavigator<BottomTabBarParamList>();
 
 const BottomTabNavigator = () => {
   const colors = useTheme().colors;
+  // Re-render so tab labels and headers follow the app language
+  useLanguage();
   const screens: ScreenComponents = {
     HomeScreen: Screen.HomeScreen,
     DeviceScreen: Screen.DeviceScreen,

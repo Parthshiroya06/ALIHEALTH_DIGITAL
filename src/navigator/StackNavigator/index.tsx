@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {useColorScheme} from 'react-native';
+import {StatusBar, useColorScheme} from 'react-native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
 import {RootStackNavigator} from './RootStackNavigator';
@@ -30,10 +30,15 @@ const StackNavigator = () => {
     isThemeMode = theme === 'dark' ? 'Dark' : 'Light';
   }
 
+  const navigationTheme =
+    isThemeMode === 'Dark' ? CombinedDarkTheme : CombinedLightTheme;
+
   return (
-    <NavigationContainer
-      theme={isThemeMode === 'Dark' ? CombinedDarkTheme : CombinedLightTheme}
-    >
+    <NavigationContainer theme={navigationTheme}>
+      <StatusBar
+        barStyle={isThemeMode === 'Dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={navigationTheme.colors.card}
+      />
       <Stack.Navigator
         screenOptions={{headerShown: false}}
         initialRouteName="SplashScreen"

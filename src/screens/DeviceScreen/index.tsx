@@ -44,15 +44,23 @@ const DeviceScreen = () => {
       stopScanRef.current = await startScan(
         device => {
           const name = device.name ?? device.localName;
-          setDevices(previous => [
-            ...previous,
-            {
-              id: device.id,
-              name: name,
-              rssi: device.rssi,
-              family: detectDeviceFamily(name, device.serviceUUIDs),
-            },
-          ]);
+          const family = detectDeviceFamily(name, device.serviceUUIDs);
+          // Skip unnamed devices unless they advertise a known bracelet service
+          if (!name && family === 'generic_ble') {
+            return;
+          }
+          setDevices(previous =>
+            [
+              ...previous,
+              {id: device.id, name: name, rssi: device.rssi, family: family},
+            ].sort(
+              // Known bracelets first, then the strongest signal
+              (a, b) =>
+                Number(b.family !== 'generic_ble') -
+                  Number(a.family !== 'generic_ble') ||
+                (b.rssi ?? -999) - (a.rssi ?? -999),
+            ),
+          );
         },
         error => {
           setIsScanning(false);

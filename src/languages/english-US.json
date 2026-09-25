@@ -72,5 +72,10 @@
   "sync_bracelet": "Sync bracelet",
   "battery": "Battery",
   "firmware": "Firmware",
-  "debug_log": "SDK log"
+  "debug_log": "SDK log",
+  "sync_nothing": "Nothing to upload – all readings are already sent.",
+  "sync_done": "Readings uploaded",
+  "sync_failed": "Upload failed",
+  "sync_failed_message": "The readings are kept on the phone and will be sent on the next sync. (The ALIHEALTH server address is not configured yet.)",
+  "bluetooth_off": "Bluetooth is off. Turn it on to connect your bracelet."
 }

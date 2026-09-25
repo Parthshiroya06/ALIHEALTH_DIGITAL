@@ -72,5 +72,10 @@
   "sync_bracelet": "Synchroniser le bracelet",
   "battery": "Batterie",
   "firmware": "Micrologiciel",
-  "debug_log": "Journal SDK"
+  "debug_log": "Journal SDK",
+  "sync_nothing": "Rien à envoyer – toutes les mesures sont déjà envoyées.",
+  "sync_done": "Mesures envoyées",
+  "sync_failed": "Échec de l'envoi",
+  "sync_failed_message": "Les mesures restent sur le téléphone et seront envoyées à la prochaine synchronisation. (L'adresse du serveur ALIHEALTH n'est pas encore configurée.)",
+  "bluetooth_off": "Le Bluetooth est désactivé. Activez-le pour connecter votre bracelet."
 }

@@ -1,22 +1,48 @@
+import {Linking, Platform} from 'react-native';
 import {BleManager, Device, State} from 'react-native-ble-plx';
 import {BleConfig} from '@constants';
+import {localize} from '@languages';
 import {requestBlePermissions} from '@utils';
 
 // One BleManager for the whole app (react-native-ble-plx requirement)
 export const bleManager = new BleManager();
 
-const waitForPoweredOn = () =>
+const waitForPoweredOn = (timeoutMs: number) =>
   new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      subscription.remove();
+      reject(new Error(localize('bluetooth_off')));
+    }, timeoutMs);
     const subscription = bleManager.onStateChange(state => {
       if (state === State.PoweredOn) {
+        clearTimeout(timer);
         subscription.remove();
         resolve();
       } else if (state === State.Unauthorized || state === State.Unsupported) {
+        clearTimeout(timer);
         subscription.remove();
         reject(new Error('Bluetooth is ' + state));
       }
     }, true);
   });
+
+/**
+ * Makes sure Bluetooth is on. Android 12+ does not let apps switch it on
+ * silently, so this shows the system "Turn on Bluetooth?" popup instead.
+ * iOS cannot turn it on: the user gets a message to enable it.
+ */
+export const ensureBluetoothOn = async () => {
+  const state = await bleManager.state();
+  if (state === State.PoweredOn) {
+    return;
+  }
+  if (state === State.PoweredOff && Platform.OS === 'android') {
+    await Linking.sendIntent(
+      'android.bluetooth.adapter.action.REQUEST_ENABLE',
+    ).catch(() => undefined);
+  }
+  await waitForPoweredOn(BleConfig.BLUETOOTH_ON_TIMEOUT_MS);
+};
 
 /**
  * Scans for nearby BLE devices. Calls onDeviceFound for each unique device.
@@ -30,7 +56,7 @@ export const startScan = async (
   if (!granted) {
     throw new Error('Bluetooth permission denied');
   }
-  await waitForPoweredOn();
+  await ensureBluetoothOn();
 
   const seen = new Set<string>();
   bleManager.startDeviceScan(

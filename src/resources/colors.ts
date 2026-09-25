@@ -28,11 +28,13 @@ export const CombinedLightTheme = {
   colors: {
     ...DefaultTheme.colors,
     ...Colors, // Add custom colors here
-    background: Colors.screenBackground,
-    text: Colors.black,
-    icons: Colors.black,
+    // Light grey screen with white cards, so cards/header/tab bar stand out
+    background: Colors.lightsecondary,
+    text: Colors.textColor,
+    icons: Colors.textColor,
     secondaryText: Colors.grey,
-    card: Colors.offWhite,
+    card: Colors.lightprimary,
+    border: Colors.lightGrey,
     darktertiary1: '#DCE3E5',
     blackTransparency: 'rgba(0,0,0,0.5)',
   },

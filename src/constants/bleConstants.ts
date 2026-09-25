@@ -32,4 +32,6 @@ export const HBandConfig = {
 
 export const BleConfig = {
   SCAN_TIMEOUT_MS: 15000,
+  // Time the user has to accept the "Turn on Bluetooth" popup
+  BLUETOOTH_ON_TIMEOUT_MS: 20000,
 };

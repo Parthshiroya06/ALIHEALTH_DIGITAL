@@ -20,6 +20,28 @@ Pod::Spec.new do |s|
     "ios/**/*.{m,mm}",
   ]
 
+  # H Band iOS SDK (downloaded by `yarn sdk:hband:ios`, git-ignored). Its frameworks are
+  # iPhone-only (arm64), so it is linked for device builds only; simulator builds and
+  # machines without the SDK compile the stub in HybridAliBandSdk.swift.
+  frameworks_dir = File.join(__dir__, "ios", "Frameworks")
+  if File.exist?(File.join(frameworks_dir, "VeepooBleSDK.framework"))
+    device = "[sdk=iphoneos*]"
+    s.dependency "FMDB"
+    s.dependency "MJExtension"
+    s.resources = ["ios/Frameworks/SDKResours.bundle"]
+    s.pod_target_xcconfig = {
+      "FRAMEWORK_SEARCH_PATHS#{device}" => "$(inherited) \"#{frameworks_dir}\"",
+      "SWIFT_ACTIVE_COMPILATION_CONDITIONS#{device}" => "$(inherited) ALIBAND_VEEPOO",
+    }
+    # Watch-face / firmware-upgrade libraries are weak-linked and not embedded (unused here)
+    s.user_target_xcconfig = {
+      "FRAMEWORK_SEARCH_PATHS#{device}" => "$(inherited) \"#{frameworks_dir}\"",
+      "OTHER_LDFLAGS#{device}" => "$(inherited) -framework VeepooBleSDK -framework JL_BLEKit " \
+        "-framework DFUnits -weak_framework JLDialUnit -weak_framework ZipZap " \
+        "-weak_framework GRDFUSDK -weak_framework ABParTool -framework CoreBluetooth -lz",
+    }
+  end
+
   load "nitrogen/generated/ios/AliBandSdk+autolinking.rb"
   add_nitrogen_files(s)
 

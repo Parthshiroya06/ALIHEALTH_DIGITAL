@@ -14,6 +14,7 @@
     "apk-bundle": "cd android && ./gradlew clean && ./gradlew bundleRelease && open . && cd ..",
     "tsc": "tsc --noEmit",
     "sdk:hband": "./scripts/fetch-hband-sdk.sh",
+    "sdk:hband:ios": "./scripts/fetch-hband-sdk-ios.sh",
     "nitrogen": "cd modules/react-native-aliband-sdk && nitrogen"
   },
   "dependencies": {

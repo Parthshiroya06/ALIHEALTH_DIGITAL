@@ -4,8 +4,8 @@ import type {AliBandSdk as AliBandSdkSpec} from './specs/AliBandSdk.nitro';
 
 export type * from './specs/AliBandSdk.nitro';
 
-/** null where the native side is not implemented yet (iOS). */
+/** Android + iOS (on the iOS simulator every call rejects: the bracelet SDK is iPhone-only). */
 export const AliBandSdk: AliBandSdkSpec | null =
-  Platform.OS === 'android'
+  Platform.OS === 'android' || Platform.OS === 'ios'
     ? NitroModules.createHybridObject<AliBandSdkSpec>('AliBandSdk')
     : null;

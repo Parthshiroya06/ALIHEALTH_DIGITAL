@@ -23,6 +23,10 @@ target 'RNLatest' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  # H Band iOS SDK dependencies (used by the AliBandSdk Swift pod, so they need module maps)
+  pod 'FMDB', :modular_headers => true
+  pod 'MJExtension', :modular_headers => true
+
   post_install do |installer|
     react_native_post_install(
       installer,

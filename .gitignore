@@ -61,7 +61,8 @@ yarn-error.log
 # Vendor bracelet SDKs (shared under NDA – never commit)
 android/app/libs/*.aar
 android/app/libs/*.jar
-ios/AliBandSDK/Frameworks/
+# H Band iOS SDK frameworks (downloaded by `yarn sdk:hband:ios`)
+modules/react-native-aliband-sdk/ios/Frameworks/
 
 # Local project notes (client details – keep out of the public repo)
 CLAUDE.md

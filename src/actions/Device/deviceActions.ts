@@ -30,6 +30,13 @@ export const storeDeviceInfo = (deviceInfo: IDeviceInfo) => {
     deviceInfo: deviceInfo,
   };
 };
+/** true after the user connects a bracelet, false after they tap Disconnect. */
+export const storeAutoReconnect = (autoReconnect: boolean) => {
+  return {
+    type: reduxTypes.AUTO_RECONNECT,
+    autoReconnect: autoReconnect,
+  };
+};
 export const storeHistorySyncedAt = (historySyncedAt: string) => {
   return {
     type: reduxTypes.HISTORY_SYNCED_AT,

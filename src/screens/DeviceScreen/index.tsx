@@ -20,7 +20,7 @@ const DeviceScreen = () => {
     deviceInfo,
     isSyncingHistory,
     connect,
-    disconnect,
+    disconnectByUser,
     syncDeviceHistory,
   } = useWearable();
 
@@ -161,7 +161,7 @@ const DeviceScreen = () => {
             />
             <CommonButton
               title={localize('disconnect')}
-              onPress={disconnect}
+              onPress={disconnectByUser}
               buttonStyle={styles.smallButton}
               TitleStyle={{color: Colors.offWhite}}
             />

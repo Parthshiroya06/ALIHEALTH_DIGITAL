@@ -5,6 +5,23 @@ import {PermissionsAndroid, Platform} from 'react-native';
  * Android 11 and below need ACCESS_FINE_LOCATION for BLE scanning.
  * iOS shows the Bluetooth prompt itself (NSBluetoothAlwaysUsageDescription).
  */
+/** Checks without asking – for background work such as auto-reconnect. */
+export const hasBlePermissions = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android') {
+    return true;
+  }
+  if (Platform.Version >= 31) {
+    const results = await Promise.all([
+      PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN),
+      PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT),
+    ]);
+    return results.every(Boolean);
+  }
+  return PermissionsAndroid.check(
+    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+  );
+};
+
 export const requestBlePermissions = async (): Promise<boolean> => {
   if (Platform.OS !== 'android') {
     return true;

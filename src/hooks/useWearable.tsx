@@ -2,6 +2,7 @@ import {useCallback, useState} from 'react';
 import {useDispatch, useSelector, useStore} from 'react-redux';
 import {
   addReadings,
+  storeAutoReconnect,
   storeCapabilities,
   storeConnectionState,
   storeDeviceInfo,
@@ -136,6 +137,7 @@ export const useWearable = () => {
           ) ?? (() => {}),
         ]);
         dispatch(storeConnectionState('connected'));
+        dispatch(storeAutoReconnect(true));
       } catch (error) {
         setActiveAdapter(null);
         await adapter.disconnect().catch(() => undefined);
@@ -151,6 +153,12 @@ export const useWearable = () => {
     },
     [disconnect, dispatch, importHistory, storeRawResponses],
   );
+
+  /** The user tapped Disconnect: stop auto-reconnect until they connect again. */
+  const disconnectByUser = useCallback(async () => {
+    dispatch(storeAutoReconnect(false));
+    await disconnect();
+  }, [disconnect, dispatch]);
 
   /** Re-reads the bracelet's stored history (steps, sleep, HR, ...). */
   const syncDeviceHistory = useCallback(async () => {
@@ -168,6 +176,7 @@ export const useWearable = () => {
     isSyncingHistory,
     connect,
     disconnect,
+    disconnectByUser,
     syncDeviceHistory,
   };
 };

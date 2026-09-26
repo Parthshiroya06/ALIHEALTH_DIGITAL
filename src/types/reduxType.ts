@@ -18,6 +18,7 @@ export interface IRootReduxState {
     capabilities: IDeviceCapabilities;
     deviceInfo: IDeviceInfo;
     historySyncedAt: string | null;
+    autoReconnect: boolean;
   };
   healthData: {
     latest: Partial<Record<MetricType, IHealthReading>>;

@@ -95,5 +95,9 @@
   "history_not_run": "Not run yet – connect the bracelet and tap Sync bracelet",
   "history_running": "Running… wait until it finishes before sharing the report",
   "history_failed": "Failed",
-  "history_done": "Finished"
+  "history_done": "Finished",
+  "auto_reconnect": "Auto-reconnect",
+  "auto_reconnect_hint": "Reconnects the bracelet automatically when it drops or the app opens",
+  "reconnecting": "Reconnecting…",
+  "attempt": "attempt"
 }

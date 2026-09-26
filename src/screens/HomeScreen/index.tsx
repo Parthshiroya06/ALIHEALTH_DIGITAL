@@ -4,7 +4,7 @@ import {CommonActions, useNavigation, useTheme} from '@react-navigation/native';
 import {useSelector} from 'react-redux';
 import {styles} from './style';
 import {CommonButton, MetricCard} from '@components';
-import {useHealthSync, useLanguage} from '@hooks';
+import {useConnectionLabel, useHealthSync, useLanguage} from '@hooks';
 import {localize} from '@languages';
 import {Colors, textStyle} from '@resources';
 import {IRootReduxState, MetricType} from '@types';
@@ -24,9 +24,10 @@ const METRICS: MetricType[] = [
 const HomeScreen = () => {
   const colors = useTheme().colors;
   useLanguage();
+  const connectionLabel = useConnectionLabel();
   const navigation = useNavigation();
   const {latest} = useSelector((state: IRootReduxState) => state.healthData);
-  const {connectionState, pairedDevice} = useSelector(
+  const {pairedDevice} = useSelector(
     (state: IRootReduxState) => state.deviceDetails,
   );
   const {pendingCount, lastSyncAt, isSyncing, syncNow} = useHealthSync();
@@ -37,8 +38,7 @@ const HomeScreen = () => {
       contentContainerStyle={styles.container}
     >
       <Text style={[textStyle(14), {color: colors.secondaryText}]}>
-        {pairedDevice?.name ?? localize('no_device_paired')} ·{' '}
-        {localize(connectionState)}
+        {pairedDevice?.name ?? localize('no_device_paired')} · {connectionLabel}
       </Text>
 
       <View style={styles.grid}>

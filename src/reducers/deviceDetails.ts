@@ -14,6 +14,8 @@ interface IAction {
   deviceInfo: IDeviceInfo;
   historySyncedAt: string;
   autoReconnect: boolean;
+  autoReconnectEnabled: boolean;
+  reconnectAttempt: number;
 }
 
 const initialValue = {
@@ -23,6 +25,8 @@ const initialValue = {
   deviceInfo: {} as IDeviceInfo,
   historySyncedAt: null as string | null, // newest history reading already imported
   autoReconnect: false, // reconnect the paired bracelet when it drops or the app opens
+  autoReconnectEnabled: true, // Settings switch
+  reconnectAttempt: 0, // shown as "Reconnecting… (attempt n)"
 };
 export const deviceDetails = (state = initialValue, action: IAction) => {
   switch (action.type) {
@@ -59,6 +63,16 @@ export const deviceDetails = (state = initialValue, action: IAction) => {
       return {
         ...state,
         autoReconnect: action.autoReconnect,
+      };
+    case reduxTypes.AUTO_RECONNECT_ENABLED:
+      return {
+        ...state,
+        autoReconnectEnabled: action.autoReconnectEnabled,
+      };
+    case reduxTypes.RECONNECT_ATTEMPT:
+      return {
+        ...state,
+        reconnectAttempt: action.reconnectAttempt,
       };
     case reduxTypes.RESET_DATA:
       return initialValue;

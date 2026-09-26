@@ -3,7 +3,7 @@ import {Alert, FlatList, Text, View} from 'react-native';
 import {CommonActions, useNavigation, useTheme} from '@react-navigation/native';
 import {styles} from './style';
 import {CommonButton, DeviceListItem} from '@components';
-import {useLanguage, useWearable} from '@hooks';
+import {useConnectionLabel, useLanguage, useWearable} from '@hooks';
 import {localize} from '@languages';
 import {Colors, textStyle} from '@resources';
 import {detectDeviceFamily, HBandAdapter, startScan, stopScan} from '@services';
@@ -12,6 +12,7 @@ import {DeviceFamily, IWearableDevice} from '@types';
 const DeviceScreen = () => {
   const colors = useTheme().colors;
   useLanguage();
+  const connectionLabel = useConnectionLabel();
   const navigation = useNavigation();
   const {
     pairedDevice,
@@ -122,7 +123,7 @@ const DeviceScreen = () => {
           {pairedDevice?.name ?? localize('no_device_paired')}
         </Text>
         <Text style={[textStyle(14), {color: colors.secondaryText}]}>
-          {localize(connectionState)}
+          {connectionLabel}
         </Text>
         {capabilities.length > 0 && (
           <Text style={[textStyle(12), {color: colors.secondaryText}]}>

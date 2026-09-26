@@ -4,7 +4,7 @@ import {useTheme} from '@react-navigation/native';
 import {useSelector} from 'react-redux';
 import {styles} from './style';
 import {CommonButton} from '@components';
-import {useLanguage, useMeasurement} from '@hooks';
+import {useConnectionLabel, useLanguage, useMeasurement} from '@hooks';
 import {localize} from '@languages';
 import {Colors, textStyle} from '@resources';
 import {IRootReduxState, MeasurableMetric} from '@types';
@@ -31,6 +31,7 @@ const ESTIMATED: MeasurableMetric[] = ['blood_pressure', 'glucose'];
 const LiveReadingsScreen = () => {
   const colors = useTheme().colors;
   useLanguage();
+  const connectionLabel = useConnectionLabel();
   const {latest} = useSelector((state: IRootReduxState) => state.healthData);
   const {connectionState, pairedDevice, capabilities, deviceInfo} = useSelector(
     (state: IRootReduxState) => state.deviceDetails,
@@ -67,7 +68,7 @@ const LiveReadingsScreen = () => {
     >
       <Text style={[textStyle(14), {color: colors.secondaryText}]}>
         {pairedDevice?.name ?? localize('no_device_paired')} ·{' '}
-        {localize(connectionState)}
+        {connectionLabel}
         {deviceInfo.batteryPercent != null
           ? ` · ${localize('battery')} ${deviceInfo.batteryPercent}%`
           : ''}

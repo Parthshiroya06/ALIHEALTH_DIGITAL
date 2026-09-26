@@ -6,7 +6,7 @@ import {useDispatch} from 'react-redux';
 import {textStyle} from '@resources';
 import {localize} from '@languages';
 import {CommonActions, useNavigation, useTheme} from '@react-navigation/native';
-import {storeConnectionState} from '@actions';
+import {storeConnectionState, storeReconnectAttempt} from '@actions';
 
 const SplashScreen = () => {
   const colors = useTheme().colors;
@@ -16,6 +16,7 @@ const SplashScreen = () => {
   useEffect(() => {
     // BLE connections never survive an app restart
     dispatch(storeConnectionState('disconnected'));
+    dispatch(storeReconnectAttempt(0));
 
     const timer = setTimeout(() => {
       navigation.dispatch(

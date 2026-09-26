@@ -4,3 +4,4 @@ export * from './useMeasurement';
 export * from './useDebugLog';
 export * from './useLanguage';
 export * from './useAutoReconnect';
+export * from './useConnectionLabel';

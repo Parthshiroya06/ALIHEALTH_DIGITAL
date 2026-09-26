@@ -1,12 +1,16 @@
 import React from 'react';
-import {Image, Pressable, ScrollView, Text, View} from 'react-native';
+import {Image, Pressable, ScrollView, Switch, Text, View} from 'react-native';
 import {useTheme} from '@react-navigation/native';
 import {useDispatch, useSelector} from 'react-redux';
 import DeviceInfo from 'react-native-device-info';
 import {styles} from './style';
 import {images} from '@assets';
 import {SegmentedControl} from '@components';
-import {languageSelection, storeThemeMode} from '@actions';
+import {
+  languageSelection,
+  storeAutoReconnectEnabled,
+  storeThemeMode,
+} from '@actions';
 import {localize} from '@languages';
 import {textStyle} from '@resources';
 import {ImageKeys, IRootReduxState} from '@types';
@@ -19,6 +23,11 @@ const SettingScreen = () => {
   const dispatch = useDispatch();
   const {themeMode, language_code} = useSelector(
     (state: IRootReduxState) => state.userDetails,
+  );
+  // Stores saved before this setting existed have no value: on by default
+  const autoReconnectEnabled = useSelector(
+    (state: IRootReduxState) =>
+      state.deviceDetails.autoReconnectEnabled !== false,
   );
 
   const row = (
@@ -69,6 +78,27 @@ const SettingScreen = () => {
         currentIndex={Math.max(LANGUAGES.indexOf(language_code), 0)}
         onChange={index => dispatch(languageSelection(LANGUAGES[index]))}
       />
+
+      <Text style={[textStyle(14), {color: colors.secondaryText}]}>
+        {localize('device')}
+      </Text>
+      <View style={[styles.row, {backgroundColor: colors.card}]}>
+        <View style={styles.rowTitle}>
+          <Text style={[textStyle(16), {color: colors.text}]}>
+            {localize('auto_reconnect')}
+          </Text>
+          <Text style={[textStyle(12), {color: colors.secondaryText}]}>
+            {localize('auto_reconnect_hint')}
+          </Text>
+        </View>
+        <Switch
+          value={autoReconnectEnabled}
+          onValueChange={value => {
+            dispatch(storeAutoReconnectEnabled(value));
+          }}
+          trackColor={{true: colors.link}}
+        />
+      </View>
 
       <View style={styles.section}>
         {row(

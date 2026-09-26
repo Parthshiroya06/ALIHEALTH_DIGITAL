@@ -95,5 +95,9 @@
   "history_not_run": "Pas encore lancée – connectez le bracelet et appuyez sur Synchroniser le bracelet",
   "history_running": "En cours… attendez la fin avant de partager le rapport",
   "history_failed": "Échec",
-  "history_done": "Terminée"
+  "history_done": "Terminée",
+  "auto_reconnect": "Reconnexion automatique",
+  "auto_reconnect_hint": "Reconnecte le bracelet automatiquement en cas de coupure ou à l'ouverture de l'application",
+  "reconnecting": "Reconnexion…",
+  "attempt": "tentative"
 }

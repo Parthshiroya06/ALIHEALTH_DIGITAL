@@ -1,9 +1,10 @@
 import {useCallback, useEffect, useRef} from 'react';
 import {AppState} from 'react-native';
-import {useSelector, useStore} from 'react-redux';
+import {useDispatch, useSelector, useStore} from 'react-redux';
+import {storeReconnectAttempt} from '@actions';
 import {addDebugLog, bleManager} from '@services';
 import {IRootReduxState} from '@types';
-import {hasBlePermissions, reconnectDelay} from '@utils';
+import {hasBlePermissions, isAutoReconnectOn, reconnectDelay} from '@utils';
 import {useWearable} from './useWearable';
 
 /**
@@ -14,23 +15,34 @@ import {useWearable} from './useWearable';
  */
 export const useAutoReconnect = () => {
   const store = useStore<IRootReduxState>();
+  const dispatch = useDispatch();
   const {connect} = useWearable();
-  const {pairedDevice, connectionState, autoReconnect} = useSelector(
-    (state: IRootReduxState) => state.deviceDetails,
-  );
+  const details = useSelector((state: IRootReduxState) => state.deviceDetails);
+  const {pairedDevice, connectionState} = details;
+  const enabled = isAutoReconnectOn(details);
   const attempt = useRef(0);
   const busy = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tryReconnect = useRef<() => Promise<void>>(async () => {});
 
   const shouldReconnect = useCallback(() => {
-    const details = store.getState().deviceDetails;
+    const current = store.getState().deviceDetails;
     return (
-      details.autoReconnect &&
-      details.pairedDevice != null &&
-      details.connectionState === 'disconnected'
+      isAutoReconnectOn(current) &&
+      current.pairedDevice != null &&
+      current.connectionState === 'disconnected'
     );
   }, [store]);
+
+  const setAttempt = useCallback(
+    (value: number) => {
+      attempt.current = value;
+      if (store.getState().deviceDetails.reconnectAttempt !== value) {
+        dispatch(storeReconnectAttempt(value));
+      }
+    },
+    [dispatch, store],
+  );
 
   const cancel = useCallback(() => {
     if (timer.current) {
@@ -67,11 +79,11 @@ export const useAutoReconnect = () => {
         return;
       }
       busy.current = true;
-      attempt.current += 1;
+      setAttempt(attempt.current + 1);
       addDebugLog(`auto-reconnect: attempt ${attempt.current}`);
       try {
         await connect(device);
-        attempt.current = 0;
+        setAttempt(0);
       } catch (error: any) {
         addDebugLog(`auto-reconnect failed: ${error?.message}`);
         if (shouldReconnect()) {
@@ -81,19 +93,18 @@ export const useAutoReconnect = () => {
         busy.current = false;
       }
     };
-  }, [connect, schedule, shouldReconnect, store]);
+  }, [connect, schedule, setAttempt, shouldReconnect, store]);
 
   // The bracelet dropped (or the app just opened): try again after a short wait
   useEffect(() => {
-    if (autoReconnect && pairedDevice && connectionState === 'disconnected') {
+    if (enabled && pairedDevice && connectionState === 'disconnected') {
       schedule();
-    } else {
+    } else if (connectionState !== 'connecting') {
+      // Connected, switched off or Disconnect tapped: stop and reset the counter
       cancel();
-      if (connectionState === 'connected') {
-        attempt.current = 0;
-      }
+      setAttempt(0);
     }
-  }, [autoReconnect, cancel, connectionState, pairedDevice, schedule]);
+  }, [cancel, connectionState, enabled, pairedDevice, schedule, setAttempt]);
 
   // Back to the foreground, or Bluetooth turned on: try right away
   useEffect(() => {

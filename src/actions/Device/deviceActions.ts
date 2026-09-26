@@ -37,6 +37,20 @@ export const storeAutoReconnect = (autoReconnect: boolean) => {
     autoReconnect: autoReconnect,
   };
 };
+/** The Settings switch (on by default). */
+export const storeAutoReconnectEnabled = (autoReconnectEnabled: boolean) => {
+  return {
+    type: reduxTypes.AUTO_RECONNECT_ENABLED,
+    autoReconnectEnabled: autoReconnectEnabled,
+  };
+};
+/** 0 when no reconnect is running, else the current attempt (shown in the UI). */
+export const storeReconnectAttempt = (reconnectAttempt: number) => {
+  return {
+    type: reduxTypes.RECONNECT_ATTEMPT,
+    reconnectAttempt: reconnectAttempt,
+  };
+};
 export const storeHistorySyncedAt = (historySyncedAt: string) => {
   return {
     type: reduxTypes.HISTORY_SYNCED_AT,

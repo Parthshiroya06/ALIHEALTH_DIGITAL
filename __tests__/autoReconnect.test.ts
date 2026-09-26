@@ -1,4 +1,8 @@
-import {reconnectDelay} from '../src/utils/reconnect';
+import {
+  connectionStatus,
+  isAutoReconnectOn,
+  reconnectDelay,
+} from '../src/utils/reconnect';
 import {deviceDetails} from '../src/reducers/deviceDetails';
 import {
   storeAutoReconnect,
@@ -27,6 +31,38 @@ describe('auto-reconnect', () => {
 
     expect(
       deviceDetails(paired, storeAutoReconnect(false) as any).autoReconnect,
+    ).toBe(false);
+  });
+
+  it('shows "Reconnecting" with the attempt only while auto-reconnect is active', () => {
+    const base = {
+      connectionState: 'disconnected',
+      pairedDevice: {id: 'AA'},
+      autoReconnect: true,
+      autoReconnectEnabled: true,
+      reconnectAttempt: 2,
+    };
+    expect(connectionStatus(base)).toEqual({key: 'reconnecting', attempt: 2});
+    expect(connectionStatus({...base, connectionState: 'connected'})).toEqual({
+      key: 'connected',
+      attempt: 0,
+    });
+    // Switched off in Settings, or Disconnect tapped
+    expect(connectionStatus({...base, autoReconnectEnabled: false}).key).toBe(
+      'disconnected',
+    );
+    expect(connectionStatus({...base, autoReconnect: false}).key).toBe(
+      'disconnected',
+    );
+    expect(connectionStatus({...base, pairedDevice: null}).key).toBe(
+      'disconnected',
+    );
+  });
+
+  it('treats a missing switch value (older installs) as on', () => {
+    expect(isAutoReconnectOn({autoReconnect: true})).toBe(true);
+    expect(
+      isAutoReconnectOn({autoReconnect: true, autoReconnectEnabled: false}),
     ).toBe(false);
   });
 });

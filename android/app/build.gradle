@@ -73,18 +73,18 @@ def enableProguardInReleaseBuilds = false
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
 /**
- * Release signing: keystore + passwords live in android/local.properties (git-ignored).
- * Without them the release build falls back to the debug key (not for distribution).
+ * Release signing: app/alihealth-release.keystore + android/keystore.properties (both in the
+ * private repo). Without them the release build falls back to the debug key (not for distribution).
  */
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file('local.properties')
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withInputStream { localProperties.load(it) }
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
 }
-def releaseStoreFile = localProperties.getProperty('ALIHEALTH_RELEASE_STORE_FILE')
+def releaseStoreFile = keystoreProperties.getProperty('ALIHEALTH_RELEASE_STORE_FILE')
 def hasReleaseSigning = releaseStoreFile != null && file(releaseStoreFile).exists()
 if (!hasReleaseSigning) {
-    logger.warn("ALIHEALTH: no release keystore in local.properties – release builds use the debug key")
+    logger.warn("ALIHEALTH: no release keystore in keystore.properties – release builds use the debug key")
 }
 
 android {
@@ -110,9 +110,9 @@ android {
         if (hasReleaseSigning) {
             release {
                 storeFile file(releaseStoreFile)
-                storePassword localProperties.getProperty('ALIHEALTH_RELEASE_STORE_PASSWORD')
-                keyAlias localProperties.getProperty('ALIHEALTH_RELEASE_KEY_ALIAS')
-                keyPassword localProperties.getProperty('ALIHEALTH_RELEASE_KEY_PASSWORD')
+                storePassword keystoreProperties.getProperty('ALIHEALTH_RELEASE_STORE_PASSWORD')
+                keyAlias keystoreProperties.getProperty('ALIHEALTH_RELEASE_KEY_ALIAS')
+                keyPassword keystoreProperties.getProperty('ALIHEALTH_RELEASE_KEY_PASSWORD')
             }
         }
     }

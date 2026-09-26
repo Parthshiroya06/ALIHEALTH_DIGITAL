@@ -31,6 +31,8 @@ local.properties
 .cxx/
 *.keystore
 !debug.keystore
+# Release key: kept in this PRIVATE repo on purpose (never make the repo public)
+!android/app/alihealth-release.keystore
 
 # node.js
 node_modules/

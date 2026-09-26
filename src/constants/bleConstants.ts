@@ -8,6 +8,7 @@ export const BleUUID = {
 };
 
 // Services advertised by Veepoo (H Band) bracelets – used to recognise them in a scan
+// Veepoo (H Band) services – also exposed by the E500, which is Veepoo-based
 export const HBandServiceUUIDs = [
   'f0020001-0451-4000-b000-000000000000',
   'f0030001-0451-4000-b000-000000000000',

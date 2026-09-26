@@ -1,9 +1,8 @@
-import {GenericBleAdapter} from './GenericBleAdapter';
+import {HBandAdapter} from './HBandAdapter';
 
 /**
- * E500 bracelet (manufacturer and model to be confirmed).
- * Until its vendor SDK arrives it connects over standard BLE, so the device
- * check report still captures every service/characteristic it exposes.
- * TODO: wrap the vendor SDK in a native module (Kotlin + Swift) and call it here.
+ * E500 bracelet. Its device check report (2026-09-26) shows the Veepoo / H Band GATT
+ * services (f0020001 / f0030001 / f0080001-0451-4000-b000-…), so it connects through
+ * the H Band SDK like any H Band.
  */
-export class E500Adapter extends GenericBleAdapter {}
+export class E500Adapter extends HBandAdapter {}

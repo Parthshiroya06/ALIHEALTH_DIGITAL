@@ -46,9 +46,9 @@ export interface IDeviceReportInput {
   generatedAt: string; // ISO
 }
 
-// Only the H Band has a vendor SDK so far; E500 + unknown bands use standard BLE
+// H Band and E500 (Veepoo-based) use the vendor SDK; unknown bands use standard BLE
 export const deviceSource = (device: IWearableDevice) =>
-  device.family === 'hband' ? 'vendor SDK' : 'standard BLE';
+  device.family === 'generic_ble' ? 'standard BLE' : 'vendor SDK';
 
 /** Supported by the band + what the app actually received from it. */
 export const getMetricStatuses = ({

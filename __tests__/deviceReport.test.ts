@@ -104,10 +104,10 @@ describe('device check report', () => {
     expect(report).toContain('"pwd":"***"');
   });
 
-  it('labels an E500 as standard BLE until its SDK is integrated', () => {
+  it('labels an E500 as vendor SDK (it is Veepoo / H Band based)', () => {
     const report = buildDeviceReport(
       input({device: {...DEVICE, name: 'E500', family: 'e500'}}),
     );
-    expect(report).toContain('Connected with: standard BLE');
+    expect(report).toContain('Connected with: vendor SDK');
   });
 });

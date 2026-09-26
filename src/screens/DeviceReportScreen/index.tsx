@@ -110,7 +110,9 @@ const DeviceReportScreen = () => {
           <Text style={[textStyle(12), {color: colors.secondaryText}]}>
             {localize('connected_with')}:{' '}
             {localize(
-              pairedDevice.family === 'hband' ? 'hband_sdk' : 'standard_ble',
+              pairedDevice.family === 'generic_ble'
+                ? 'standard_ble'
+                : 'hband_sdk',
             )}
           </Text>
           {details.length > 0 && (

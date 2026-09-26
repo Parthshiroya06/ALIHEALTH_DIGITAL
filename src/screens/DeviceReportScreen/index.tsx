@@ -78,16 +78,35 @@ const DeviceReportScreen = () => {
     if (status.readingCount === 0 && !status.lastReadingAt) {
       return localize('no_data_yet');
     }
+    if (status.readingCount === 0) {
+      return localize('live_value_only');
+    }
     return `${localize('supported')} · ${status.readingCount} ${localize(
       'readings_received',
     )}`;
+  };
+
+  const historySyncText = () => {
+    const sync = deviceInfo.lastHistorySync;
+    if (!sync) {
+      return localize('history_not_run');
+    }
+    if (!sync.finishedAt) {
+      return localize('history_running');
+    }
+    if (sync.error) {
+      return `${localize('history_failed')}: ${sync.error}`;
+    }
+    return `${localize('history_done')}: ${sync.readings ?? 0} ${localize(
+      'readings_received',
+    )} · ${new Date(sync.finishedAt).toLocaleString()}`;
   };
 
   const statusIcon = (status: IMetricStatus) => {
     if (!status.supported) {
       return '❌';
     }
-    return status.readingCount === 0 && !status.lastReadingAt ? '⚠️' : '✅';
+    return status.readingCount > 0 ? '✅' : '⚠️';
   };
 
   const details = [
@@ -120,6 +139,15 @@ const DeviceReportScreen = () => {
               {details.join(' · ')}
             </Text>
           )}
+        </View>
+
+        <View style={[styles.card, {backgroundColor: colors.card}]}>
+          <Text style={[textStyle(14, 'Roboto200'), {color: colors.text}]}>
+            {localize('history_sync')}
+          </Text>
+          <Text style={[textStyle(12), {color: colors.secondaryText}]}>
+            {historySyncText()}
+          </Text>
         </View>
 
         <Text style={[textStyle(16, 'Roboto200'), {color: colors.text}]}>

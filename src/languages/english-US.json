@@ -89,5 +89,11 @@
   "connected_with": "Connected with",
   "report_hint": "After the first connection and a bracelet sync, share this report with the ALIHEALTH team.",
   "report_connect_first": "Connect a bracelet first to create the report.",
-  "raw_data_included": "Full raw device data is included in the shared report"
+  "raw_data_included": "Full raw device data is included in the shared report",
+  "live_value_only": "Supported – live value only, no history received",
+  "history_sync": "History sync",
+  "history_not_run": "Not run yet – connect the bracelet and tap Sync bracelet",
+  "history_running": "Running… wait until it finishes before sharing the report",
+  "history_failed": "Failed",
+  "history_done": "Finished"
 }

@@ -67,6 +67,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -82,6 +83,8 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
     private const val CONNECT_TIMEOUT_MS = 30_000L
     private const val HISTORY_TIMEOUT_MS = 240_000L
     private const val HISTORY_STEP_TIMEOUT_MS = 90_000L
+    // The band sends its function list several times, the first one incomplete
+    private const val FUNCTIONS_SETTLE_MS = 1_500L
     private const val MMOL_TO_MG_DL = 18.0182
   }
 
@@ -99,6 +102,8 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
   private val rawLock = Any()
   private var rawConnect = JSONObject()
   private val historyFields = sortedMapOf<String, FieldCoverage>()
+  // What the last history sync did, step by step (no health values)
+  private val historyLog = mutableListOf<String>()
   private val getterCache = mutableMapOf<Class<*>, List<Method>>()
 
   private class FieldCoverage {
@@ -189,6 +194,7 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
     var deviceNumber = 0
     var firmwareVersion = ""
     val functionsReceived = AtomicBoolean(false)
+    val latestFunctions = AtomicReference<FunctionDeviceSupportData>()
 
     manager.confirmDevicePwd(
       writeResponse("confirmDevicePwd") { fail("Password command failed") },
@@ -210,21 +216,24 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
       object : IDeviceFuctionDataListener {
         override fun onFunctionSupportDataChange(data: FunctionDeviceSupportData) {
           putRaw("functionSupport", data)
+          latestFunctions.set(data)
           if (!functionsReceived.compareAndSet(false, true)) return
-          watchDays = data.getWathcDay().coerceAtLeast(1)
-          val capabilities = capabilities(data)
-          val features = features(data)
           syncPersonInfo(profile) {
-            mainHandler.removeCallbacks(timeout)
-            once.resolve(
-              BandInfo(
-                deviceNumber = deviceNumber.toDouble(),
-                firmwareVersion = firmwareVersion,
-                watchDays = watchDays.toDouble(),
-                capabilities = capabilities.toTypedArray(),
-                features = features,
-              ),
-            )
+            // Build the capabilities from the latest (complete) function list
+            mainHandler.postDelayed({
+              val functions = latestFunctions.get() ?: data
+              watchDays = functions.getWathcDay().coerceAtLeast(1)
+              mainHandler.removeCallbacks(timeout)
+              once.resolve(
+                BandInfo(
+                  deviceNumber = deviceNumber.toDouble(),
+                  firmwareVersion = firmwareVersion,
+                  watchDays = watchDays.toDouble(),
+                  capabilities = capabilities(functions).toTypedArray(),
+                  features = features(functions),
+                ),
+              )
+            }, FUNCTIONS_SETTLE_MS)
           }
         }
 
@@ -505,12 +514,20 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
     val promise = Promise<Array<BandReading>>()
     val once = Once(promise)
     val readings = mutableListOf<BandReading>()
-    synchronized(rawLock) { historyFields.clear() }
-    val finish = Runnable {
-      log("history: ${readings.size} readings")
-      once.resolve(readings.toTypedArray())
+    synchronized(rawLock) {
+      historyFields.clear()
+      historyLog.clear()
     }
-    mainHandler.postDelayed(finish, HISTORY_TIMEOUT_MS)
+    val finished = AtomicBoolean(false)
+    val finish = { reason: String ->
+      if (finished.compareAndSet(false, true)) {
+        noteHistory("$reason: ${readings.size} readings")
+        log("history: ${readings.size} readings")
+        once.resolve(readings.toTypedArray())
+      }
+    }
+    val overallTimeout = Runnable { finish("stopped after ${HISTORY_TIMEOUT_MS / 1000} s") }
+    mainHandler.postDelayed(overallTimeout, HISTORY_TIMEOUT_MS)
 
     val features = VpSpGetUtil.getVpSpVariInstance(context)
     // Protocol 3/5 bands send 5-min data as OriginData3 (with SpO2 + glucose)
@@ -529,9 +546,12 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
         add(HistoryStep("ecg") { _, next -> readEcgRecords(readings, next) })
       }
     }
+    noteHistory(
+      "protocol v${features.getOriginProtocolVersion()}, $watchDays days, steps: ${steps.joinToString { it.name }}",
+    )
     runSteps(steps, 0) {
-      mainHandler.removeCallbacks(finish)
-      finish.run()
+      mainHandler.removeCallbacks(overallTimeout)
+      finish("finished")
     }
     return promise
   }
@@ -545,8 +565,10 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
     }
     val step = steps[index]
     val advanced = AtomicBoolean(false)
+    val startedAt = System.currentTimeMillis()
     val timeout = Runnable {
       if (advanced.compareAndSet(false, true)) {
+        noteHistory("step '${step.name}': timed out after ${HISTORY_STEP_TIMEOUT_MS / 1000} s")
         log("history step '${step.name}' timed out")
         runSteps(steps, index + 1, onDone)
       }
@@ -557,6 +579,7 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
     }
     val next = {
       if (advanced.compareAndSet(false, true)) {
+        noteHistory("step '${step.name}': done in ${(System.currentTimeMillis() - startedAt) / 1000} s")
         mainHandler.removeCallbacks(timeout)
         mainHandler.post { runSteps(steps, index + 1, onDone) }
       }
@@ -574,7 +597,9 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
       override fun onOringinFiveMinuteDataChange(origin: OriginData?) = addFiveMinute(readings, origin)
       override fun onOringinHalfHourDataChange(halfHour: OriginHalfHourData?) = addHalfHour(readings, halfHour)
       override fun onReadOriginComplete() = next()
-      override fun onReadTimeout(day: Int) = log("history read timeout for day $day")
+      override fun onReadTimeout(day: Int) {
+        noteHistory("read timeout for day $day")
+      }
     }, watchDays)
   }
 
@@ -618,7 +643,9 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
         override fun onReadOriginProgressDetail(day: Int, date: String?, allPackage: Int, currentPackage: Int) {}
         override fun onReadOriginProgress(value: Float) = progress(value)
         override fun onReadOriginComplete() = next()
-        override fun onReadTimeout(day: Int) = log("history read timeout for day $day")
+        override fun onReadTimeout(day: Int) {
+          noteHistory("read timeout for day $day")
+        }
       },
       watchDays,
     )
@@ -774,7 +801,8 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
 
   override fun getRawResponses(): String = synchronized(rawLock) {
     JSONObject().apply {
-      put("connect", JSONObject(rawConnect.toString()))
+      // History first: the connect dump is long and shared text can get cut
+      put("historyLog", JSONArray(historyLog.toList()))
       put(
         "historyFields",
         JSONObject().apply {
@@ -788,7 +816,14 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
           }
         },
       )
+      put("connect", JSONObject(rawConnect.toString()))
     }.toString(2)
+  }
+
+  private fun noteHistory(message: String) {
+    synchronized(rawLock) {
+      if (historyLog.size < 60) historyLog.add(message)
+    }
   }
 
   /** Device configuration: every getter value (passwords masked). No health values here. */
@@ -807,7 +842,8 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
           value is IntArray -> JSONArray(value.toList())
           value is Collection<*> -> "${value.size} items"
           value is Array<*> -> "${value.size} items"
-          else -> value.toString()
+          // Long SDK toString() dumps (Chinese descriptions) repeat the values above
+          else -> value.toString().let { if (it.length > 120) it.take(120) + "…" else it }
         },
       )
     }
@@ -908,6 +944,7 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
   private fun writeResponse(command: String, onFail: (() -> Unit)? = null) = IBleWriteResponse { code ->
     if (code != Code.REQUEST_SUCCESS) {
       log("$command: write failed ($code)")
+      noteHistory("$command: write failed ($code)")
       onFail?.invoke()
     }
   }

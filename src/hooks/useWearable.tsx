@@ -16,7 +16,12 @@ import {
   setActiveAdapter,
   WearableAdapter,
 } from '@services';
-import {IRootReduxState, IWearableDevice} from '@types';
+import {
+  IDeviceInfo,
+  IHistorySyncResult,
+  IRootReduxState,
+  IWearableDevice,
+} from '@types';
 
 /**
  * Connects to a bracelet through the matching WearableAdapter, stores its
@@ -31,21 +36,31 @@ export const useWearable = () => {
   );
   const [isSyncingHistory, setIsSyncingHistory] = useState(false);
 
+  const updateDeviceInfo = useCallback(
+    (patch: Partial<IDeviceInfo>) => {
+      const {deviceInfo: current} = store.getState().deviceDetails;
+      dispatch(storeDeviceInfo({...current, ...patch}));
+    },
+    [dispatch, store],
+  );
+
   // Keeps the band's raw responses for the device check report
   const storeRawResponses = useCallback(
     (adapter: WearableAdapter) => {
       const rawResponses = adapter.getRawResponses?.();
       if (rawResponses) {
-        const {deviceInfo: current} = store.getState().deviceDetails;
-        dispatch(storeDeviceInfo({...current, rawResponses}));
+        updateDeviceInfo({rawResponses});
       }
     },
-    [dispatch, store],
+    [updateDeviceInfo],
   );
 
   const importHistory = useCallback(
     async (adapter: WearableAdapter) => {
       setIsSyncingHistory(true);
+      const startedAt = new Date().toISOString();
+      let result: IHistorySyncResult = {startedAt};
+      updateDeviceInfo({lastHistorySync: result});
       try {
         const {historySyncedAt} = store.getState().deviceDetails;
         const history = await adapter.syncHistory(historySyncedAt);
@@ -58,16 +73,34 @@ export const useWearable = () => {
           );
           dispatch(storeHistorySyncedAt(newest));
         }
-        const snapshot = (await adapter.readSnapshot?.()) ?? [];
-        if (snapshot.length) {
-          dispatch(storeLatestReadings(snapshot));
-        }
+        result = {
+          startedAt,
+          finishedAt: new Date().toISOString(),
+          readings: history.length,
+        };
+      } catch (error: any) {
+        result = {
+          startedAt,
+          finishedAt: new Date().toISOString(),
+          error: error?.message ?? 'Unknown error',
+        };
+        throw error;
       } finally {
+        // Today's totals are read even when the history failed
+        try {
+          const snapshot = (await adapter.readSnapshot?.()) ?? [];
+          if (snapshot.length) {
+            dispatch(storeLatestReadings(snapshot));
+          }
+        } catch (error: any) {
+          addDebugLog(`snapshot failed: ${error?.message}`);
+        }
         storeRawResponses(adapter);
+        updateDeviceInfo({lastHistorySync: result});
         setIsSyncingHistory(false);
       }
     },
-    [dispatch, store, storeRawResponses],
+    [dispatch, store, storeRawResponses, updateDeviceInfo],
   );
 
   // Never throws: the band may already be gone (out of range, switched off)

@@ -38,4 +38,13 @@ export interface IDeviceInfo {
   gattServices?: IGattService[];
   /** Vendor SDK: full raw responses (JSON) for the device check report */
   rawResponses?: string;
+  /** Result of the last history import, shown in the device check report */
+  lastHistorySync?: IHistorySyncResult;
+}
+
+export interface IHistorySyncResult {
+  startedAt: string; // ISO
+  finishedAt?: string; // missing while the sync is still running
+  readings?: number; // readings imported
+  error?: string;
 }

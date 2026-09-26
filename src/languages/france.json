@@ -89,5 +89,11 @@
   "connected_with": "Connecté avec",
   "report_hint": "Après la première connexion et une synchronisation du bracelet, partagez ce rapport avec l'équipe ALIHEALTH.",
   "report_connect_first": "Connectez d'abord un bracelet pour créer le rapport.",
-  "raw_data_included": "Les données brutes complètes de l'appareil sont incluses dans le rapport partagé"
+  "raw_data_included": "Les données brutes complètes de l'appareil sont incluses dans le rapport partagé",
+  "live_value_only": "Pris en charge – valeur en direct uniquement, aucun historique reçu",
+  "history_sync": "Synchronisation de l'historique",
+  "history_not_run": "Pas encore lancée – connectez le bracelet et appuyez sur Synchroniser le bracelet",
+  "history_running": "En cours… attendez la fin avant de partager le rapport",
+  "history_failed": "Échec",
+  "history_done": "Terminée"
 }

@@ -1,5 +1,6 @@
 import {
   buildDeviceReport,
+  describeHistorySync,
   getMetricStatuses,
   IDeviceReportInput,
 } from '../src/utils/deviceReport';
@@ -101,7 +102,60 @@ describe('device check report', () => {
       '00002a29-0000-1000-8000-00805f9b34fb (read): 41 42 "AB"',
     );
     expect(report).toContain('RAW DEVICE DATA');
-    expect(report).toContain('"pwd":"***"');
+    expect(report).toContain('"pwd": "***"');
+  });
+
+  it('flags a live-only value as missing history', () => {
+    const report = buildDeviceReport(
+      input({
+        readings: [],
+        latest: {steps: reading('steps', '2026-09-26T11:40:00.000Z')},
+      }),
+    );
+    expect(report).toContain(
+      '⚠️ Activity / steps – supported (vendor SDK), live value only (2026-09-26 11:40 UTC), no history received',
+    );
+  });
+
+  it('puts the history sync result and log before the long raw data', () => {
+    const report = buildDeviceReport(
+      input({
+        deviceInfo: {
+          lastHistorySync: {
+            startedAt: '2026-09-26T13:00:00.000Z',
+            finishedAt: '2026-09-26T13:02:00.000Z',
+            error: 'The bracelet did not respond',
+          },
+          rawResponses: JSON.stringify({
+            historyLog: ["step 'sleep': timed out after 90 s"],
+            historyFields: {
+              SleepData: {records: 0},
+              OriginData3: {records: 12},
+            },
+            connect: {functionSupport: {pkg: 'x'.repeat(500)}},
+          }),
+        },
+      }),
+    );
+    const history = report.indexOf('HISTORY SYNC');
+    expect(history).toBeGreaterThan(0);
+    expect(history).toBeLessThan(report.indexOf('DATA AVAILABILITY'));
+    expect(report).toContain(
+      'Failed at 2026-09-26 13:02 UTC: The bracelet did not respond',
+    );
+    expect(report).toContain("- step 'sleep': timed out after 90 s");
+    expect(report).toContain(
+      'Records from the bracelet: SleepData 0, OriginData3 12',
+    );
+    // Long SDK strings are shortened
+    expect(report).not.toContain('x'.repeat(200));
+  });
+
+  it('says when the history sync is still running', () => {
+    expect(
+      describeHistorySync({startedAt: '2026-09-26T13:00:00.000Z'}),
+    ).toContain('still running');
+    expect(describeHistorySync(undefined)).toBe('Not run yet');
   });
 
   it('labels an E500 as vendor SDK (it is Veepoo / H Band based)', () => {

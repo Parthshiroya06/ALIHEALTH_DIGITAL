@@ -33,6 +33,8 @@ class HybridAliBandSdk: HybridAliBandSdkSpec {
   // Raw band responses for the device check report (main thread only)
   private var rawConnect: [String: Any] = [:]
   private var historyFields: [String: (records: Int, fields: Set<String>)] = [:]
+  // What the last history sync did, step by step (no health values)
+  private var historyLog: [String] = []
 
   override init() {
     super.init()
@@ -377,9 +379,12 @@ class HybridAliBandSdk: HybridAliBandSdkSpec {
         return
       }
       historyFields = [:]
+      historyLog = []
       let giveUp = DispatchWorkItem { [weak self] in
         self?.log("history: timed out, returning what was read")
-        once.resolve(self?.queryHistory(tableId: tableId, model: model) ?? [])
+        let readings = self?.queryHistory(tableId: tableId, model: model) ?? []
+        self?.noteHistory("stopped after \(Int(Self.historyTimeout)) s: \(readings.count) readings")
+        once.resolve(readings)
       }
       DispatchQueue.main.asyncAfter(deadline: .now() + Self.historyTimeout, execute: giveUp)
 
@@ -403,9 +408,12 @@ class HybridAliBandSdk: HybridAliBandSdkSpec {
           }
         })
       }
+      noteHistory("sleepType \(model.sleepType), temperatureType \(model.temperatureType), \(watchDays) days, "
+        + "steps: \(steps.map(\.name).joined(separator: ", "))")
       runSteps(steps, index: 0) { [weak self] in
         giveUp.cancel()
         let readings = self?.queryHistory(tableId: tableId, model: model) ?? []
+        self?.noteHistory("finished: \(readings.count) readings")
         self?.log("history: \(readings.count) readings")
         once.resolve(readings)
       }
@@ -424,10 +432,12 @@ class HybridAliBandSdk: HybridAliBandSdkSpec {
       return
     }
     let step = steps[index]
+    let startedAt = Date()
     let advance = OnceAction { [weak self] in
       DispatchQueue.main.async { self?.runSteps(steps, index: index + 1, onDone: onDone) }
     }
     let timeout = DispatchWorkItem { [weak self] in
+      self?.noteHistory("step '\(step.name)': timed out after \(Int(Self.historyStepTimeout)) s")
       self?.log("history step '\(step.name)' timed out")
       advance.run()
     }
@@ -435,8 +445,9 @@ class HybridAliBandSdk: HybridAliBandSdkSpec {
     log("history step '\(step.name)'")
     step.run({ [weak self] value in
       self?.onSyncProgress?((Double(index) + min(max(value, 0), 1)) / Double(steps.count))
-    }, {
+    }, { [weak self] in
       timeout.cancel()
+      self?.noteHistory("step '\(step.name)': done in \(Int(Date().timeIntervalSince(startedAt))) s")
       advance.run()
     })
   }
@@ -607,10 +618,14 @@ class HybridAliBandSdk: HybridAliBandSdkSpec {
 
   func getRawResponses() throws -> String {
     let fields = historyFields.mapValues { ["records": $0.records, "fieldsWithData": $0.fields.sorted()] }
-    let json: [String: Any] = ["connect": rawConnect, "historyFields": fields]
+    let json: [String: Any] = ["connect": rawConnect, "historyFields": fields, "historyLog": historyLog]
     guard let data = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys])
     else { return "{}" }
     return String(decoding: data, as: UTF8.self)
+  }
+
+  private func noteHistory(_ message: String) {
+    if historyLog.count < 60 { historyLog.append(message) }
   }
 
   /// Device configuration: every property (passwords masked). No health values here.

@@ -1,6 +1,7 @@
 import {
   IDeviceCapabilities,
   IDeviceInfo,
+  IHistorySyncResult,
   IHealthReading,
   IWearableDevice,
   MetricType,
@@ -111,6 +112,25 @@ export const buildDeviceReport = (input: IDeviceReportInput): string => {
     lines.push(details.join(' · '));
   }
 
+  // Early in the report: long shared texts can get cut at the end
+  const raw = parseRaw(deviceInfo.rawResponses);
+  lines.push(
+    '',
+    'HISTORY SYNC',
+    describeHistorySync(deviceInfo.lastHistorySync),
+  );
+  if (Array.isArray(raw?.historyLog) && raw.historyLog.length) {
+    lines.push(...raw.historyLog.map((entry: unknown) => `- ${entry}`));
+  }
+  const records = Object.entries(raw?.historyFields ?? {})
+    .map(
+      ([kind, coverage]: [string, any]) => `${kind} ${coverage?.records ?? 0}`,
+    )
+    .join(', ');
+  if (raw) {
+    lines.push(`Records from the bracelet: ${records || 'none'}`);
+  }
+
   lines.push('', 'DATA AVAILABILITY');
   getMetricStatuses(input).forEach(status => {
     const name = METRIC_NAMES[status.metric];
@@ -118,6 +138,13 @@ export const buildDeviceReport = (input: IDeviceReportInput): string => {
       lines.push(`❌ ${name} – not reported by the bracelet`);
     } else if (status.readingCount === 0 && !status.lastReadingAt) {
       lines.push(`⚠️ ${name} – supported (${source}), no data received yet`);
+    } else if (status.readingCount === 0) {
+      // e.g. today's live step total, but nothing from the bracelet's history
+      lines.push(
+        `⚠️ ${name} – supported (${source}), live value only (${formatUtc(
+          status.lastReadingAt!,
+        )}), no history received`,
+      );
     } else {
       const last = status.lastReadingAt
         ? `, last ${formatUtc(status.lastReadingAt)}`
@@ -160,8 +187,44 @@ export const buildDeviceReport = (input: IDeviceReportInput): string => {
     lines.push(
       '',
       'RAW DEVICE DATA (for the developer – settings + field names, no health values)',
-      deviceInfo.rawResponses,
+      raw ? JSON.stringify(raw, shortenLongText, 1) : deviceInfo.rawResponses,
     );
   }
   return lines.join('\n');
+};
+
+const MAX_TEXT = 120;
+
+/** Long SDK description strings repeat values already listed; keep the report short. */
+const shortenLongText = (_key: string, value: unknown) =>
+  typeof value === 'string' && value.length > MAX_TEXT
+    ? `${value.slice(0, MAX_TEXT)}…`
+    : value;
+
+const parseRaw = (rawResponses?: string): any => {
+  if (!rawResponses) {
+    return null;
+  }
+  try {
+    return JSON.parse(rawResponses);
+  } catch {
+    return null;
+  }
+};
+
+export const describeHistorySync = (sync?: IHistorySyncResult): string => {
+  if (!sync) {
+    return 'Not run yet';
+  }
+  if (!sync.finishedAt) {
+    return `Started ${formatUtc(
+      sync.startedAt,
+    )} – still running (wait until it finishes, then share the report again)`;
+  }
+  if (sync.error) {
+    return `Failed at ${formatUtc(sync.finishedAt)}: ${sync.error}`;
+  }
+  return `Finished ${formatUtc(sync.finishedAt)}: ${
+    sync.readings ?? 0
+  } readings imported`;
 };

@@ -1,23 +1,9 @@
-import {IDeviceCapabilities, IHealthReading} from '@types';
-import {WearableAdapter} from './WearableAdapter';
+import {GenericBleAdapter} from './GenericBleAdapter';
 
 /**
  * E500 bracelet (manufacturer and model to be confirmed).
- * TODO: wrap the vendor SDK in a native module (Kotlin + Swift) and call it here
- * once the SDK is received from the manufacturer.
+ * Until its vendor SDK arrives it connects over standard BLE, so the device
+ * check report still captures every service/characteristic it exposes.
+ * TODO: wrap the vendor SDK in a native module (Kotlin + Swift) and call it here.
  */
-export class E500Adapter implements WearableAdapter {
-  async connect(_deviceId: string) {
-    throw new Error('E500Adapter: vendor SDK not integrated yet');
-  }
-  async disconnect() {}
-  async getCapabilities(): Promise<IDeviceCapabilities> {
-    return [];
-  }
-  subscribeRealtime(_onReadings: (readings: IHealthReading[]) => void) {
-    return () => {};
-  }
-  async syncHistory(): Promise<IHealthReading[]> {
-    return [];
-  }
-}
+export class E500Adapter extends GenericBleAdapter {}

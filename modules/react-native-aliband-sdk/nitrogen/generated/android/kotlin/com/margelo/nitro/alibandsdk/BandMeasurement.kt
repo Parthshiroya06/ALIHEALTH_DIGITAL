@@ -41,7 +41,10 @@ data class BandMeasurement(
   val error: Boolean,
   @DoNotStrip
   @Keep
-  val timestamp: Double
+  val timestamp: Double,
+  @DoNotStrip
+  @Keep
+  val file: String?
 ) {
   /* primary constructor */
 
@@ -56,6 +59,7 @@ data class BandMeasurement(
       && Objects.deepEquals(this.done, other.done)
       && Objects.deepEquals(this.error, other.error)
       && Objects.deepEquals(this.timestamp, other.timestamp)
+      && Objects.deepEquals(this.file, other.file)
   }
 
   override fun hashCode(): Int {
@@ -67,7 +71,8 @@ data class BandMeasurement(
       values,
       done,
       error,
-      timestamp
+      timestamp,
+      file
     ).contentDeepHashCode()
   }
 
@@ -79,8 +84,8 @@ data class BandMeasurement(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(type: MeasurementType, state: String, progress: Double, value: Double?, values: Map<String, Double>?, done: Boolean, error: Boolean, timestamp: Double): BandMeasurement {
-      return BandMeasurement(type, state, progress, value, values, done, error, timestamp)
+    private fun fromCpp(type: MeasurementType, state: String, progress: Double, value: Double?, values: Map<String, Double>?, done: Boolean, error: Boolean, timestamp: Double, file: String?): BandMeasurement {
+      return BandMeasurement(type, state, progress, value, values, done, error, timestamp, file)
     }
   }
 }

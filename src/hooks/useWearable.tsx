@@ -31,6 +31,18 @@ export const useWearable = () => {
   );
   const [isSyncingHistory, setIsSyncingHistory] = useState(false);
 
+  // Keeps the band's raw responses for the device check report
+  const storeRawResponses = useCallback(
+    (adapter: WearableAdapter) => {
+      const rawResponses = adapter.getRawResponses?.();
+      if (rawResponses) {
+        const {deviceInfo: current} = store.getState().deviceDetails;
+        dispatch(storeDeviceInfo({...current, rawResponses}));
+      }
+    },
+    [dispatch, store],
+  );
+
   const importHistory = useCallback(
     async (adapter: WearableAdapter) => {
       setIsSyncingHistory(true);
@@ -51,17 +63,21 @@ export const useWearable = () => {
           dispatch(storeLatestReadings(snapshot));
         }
       } finally {
+        storeRawResponses(adapter);
         setIsSyncingHistory(false);
       }
     },
-    [dispatch, store],
+    [dispatch, store, storeRawResponses],
   );
 
+  // Never throws: the band may already be gone (out of range, switched off)
   const disconnect = useCallback(async () => {
     const adapter = getActiveAdapter();
     setActiveAdapter(null);
     try {
       await adapter?.disconnect();
+    } catch (error: any) {
+      addDebugLog(`disconnect: ${error?.message}`);
     } finally {
       dispatch(storeConnectionState('disconnected'));
     }
@@ -77,6 +93,7 @@ export const useWearable = () => {
         dispatch(storePairedDevice(device));
         dispatch(storeCapabilities(await adapter.getCapabilities()));
         dispatch(storeDeviceInfo((await adapter.getDeviceInfo?.()) ?? {}));
+        storeRawResponses(adapter);
         setActiveAdapter(adapter, [
           adapter.subscribeRealtime(readings =>
             dispatch(addReadings(readings)),
@@ -99,7 +116,7 @@ export const useWearable = () => {
         addDebugLog(`history sync failed: ${error?.message}`);
       }
     },
-    [disconnect, dispatch, importHistory],
+    [disconnect, dispatch, importHistory, storeRawResponses],
   );
 
   /** Re-reads the bracelet's stored history (steps, sleep, HR, ...). */

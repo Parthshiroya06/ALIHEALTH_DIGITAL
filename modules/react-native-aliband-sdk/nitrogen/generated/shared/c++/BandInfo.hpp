@@ -32,6 +32,7 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 namespace margelo::nitro::alibandsdk {
 
@@ -44,10 +45,11 @@ namespace margelo::nitro::alibandsdk {
     std::string firmwareVersion     SWIFT_PRIVATE;
     double watchDays     SWIFT_PRIVATE;
     std::vector<std::string> capabilities     SWIFT_PRIVATE;
+    std::unordered_map<std::string, std::string> features     SWIFT_PRIVATE;
 
   public:
     BandInfo() = default;
-    explicit BandInfo(double deviceNumber, std::string firmwareVersion, double watchDays, std::vector<std::string> capabilities): deviceNumber(deviceNumber), firmwareVersion(firmwareVersion), watchDays(watchDays), capabilities(capabilities) {}
+    explicit BandInfo(double deviceNumber, std::string firmwareVersion, double watchDays, std::vector<std::string> capabilities, std::unordered_map<std::string, std::string> features): deviceNumber(deviceNumber), firmwareVersion(firmwareVersion), watchDays(watchDays), capabilities(capabilities), features(features) {}
 
   public:
     friend bool operator==(const BandInfo& lhs, const BandInfo& rhs) = default;
@@ -66,7 +68,8 @@ namespace margelo::nitro {
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "deviceNumber"))),
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "firmwareVersion"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "watchDays"))),
-        JSIConverter<std::vector<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "capabilities")))
+        JSIConverter<std::vector<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "capabilities"))),
+        JSIConverter<std::unordered_map<std::string, std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "features")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::alibandsdk::BandInfo& arg) {
@@ -75,6 +78,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "firmwareVersion"), JSIConverter<std::string>::toJSI(runtime, arg.firmwareVersion));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "watchDays"), JSIConverter<double>::toJSI(runtime, arg.watchDays));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "capabilities"), JSIConverter<std::vector<std::string>>::toJSI(runtime, arg.capabilities));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "features"), JSIConverter<std::unordered_map<std::string, std::string>>::toJSI(runtime, arg.features));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -89,6 +93,7 @@ namespace margelo::nitro {
       if (!JSIConverter<std::string>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "firmwareVersion")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "watchDays")))) return false;
       if (!JSIConverter<std::vector<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "capabilities")))) return false;
+      if (!JSIConverter<std::unordered_map<std::string, std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "features")))) return false;
       return true;
     }
   };

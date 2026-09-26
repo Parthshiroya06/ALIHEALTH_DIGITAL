@@ -17,12 +17,16 @@ import com.veepoo.protocol.listener.data.IBPDetectDataListener
 import com.veepoo.protocol.listener.data.IBloodGlucoseChangeListener
 import com.veepoo.protocol.listener.data.ICustomSettingDataListener
 import com.veepoo.protocol.listener.data.IDeviceFuctionDataListener
+import com.veepoo.protocol.listener.data.IECGReadDataListener
 import com.veepoo.protocol.listener.data.IECGDetectListener
 import com.veepoo.protocol.listener.data.IHeartDataListener
+import com.veepoo.protocol.listener.data.IOriginData3Listener
 import com.veepoo.protocol.listener.data.IPersonInfoDataListener
 import com.veepoo.protocol.listener.data.IPwdDataListener
+import com.veepoo.protocol.listener.data.ISleepDataListener
 import com.veepoo.protocol.listener.data.ISocialMsgDataListener
 import com.veepoo.protocol.listener.data.ISpo2hDataListener
+import com.veepoo.protocol.listener.data.ISpo2hOriginDataListener
 import com.veepoo.protocol.listener.data.ITemptureDetectDataListener
 import com.veepoo.protocol.model.datas.DeviceFunctionPackage1
 import com.veepoo.protocol.model.datas.DeviceFunctionPackage2
@@ -35,27 +39,36 @@ import com.veepoo.protocol.model.datas.EcgDetectState
 import com.veepoo.protocol.model.datas.EcgDiagnosis
 import com.veepoo.protocol.model.datas.FunctionDeviceSupportData
 import com.veepoo.protocol.model.datas.FunctionSocailMsgData
+import com.veepoo.protocol.model.datas.HRVOriginData
 import com.veepoo.protocol.model.datas.MealInfo
 import com.veepoo.protocol.model.datas.OriginData
+import com.veepoo.protocol.model.datas.OriginData3
 import com.veepoo.protocol.model.datas.OriginHalfHourData
 import com.veepoo.protocol.model.datas.PersonInfoData
 import com.veepoo.protocol.model.datas.PwdData
 import com.veepoo.protocol.model.datas.SleepData
 import com.veepoo.protocol.model.datas.Spo2hData
+import com.veepoo.protocol.model.datas.Spo2hOriginData
 import com.veepoo.protocol.model.datas.TemptureDetectData
 import com.veepoo.protocol.model.datas.TimeData
 import com.veepoo.protocol.model.enums.EBPDetectModel
 import com.veepoo.protocol.model.enums.EBloodGlucoseRiskLevel
 import com.veepoo.protocol.model.enums.EBloodGlucoseStatus
+import com.veepoo.protocol.model.enums.EEcgDataType
 import com.veepoo.protocol.model.enums.EFunctionStatus
 import com.veepoo.protocol.model.enums.EOprateStauts
 import com.veepoo.protocol.model.enums.EPwdStatus
 import com.veepoo.protocol.model.enums.ESex
 import com.veepoo.protocol.model.settings.CustomSettingData
+import com.veepoo.protocol.shareprence.VpSpGetUtil
+import java.io.File
+import java.lang.reflect.Method
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * Nitro HybridObject around the H Band (Veepoo) SDK, used by the app's HBandAdapter.
@@ -67,17 +80,31 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
   companion object {
     private const val TAG = "AliBandSdk"
     private const val CONNECT_TIMEOUT_MS = 30_000L
-    private const val HISTORY_TIMEOUT_MS = 120_000L
+    private const val HISTORY_TIMEOUT_MS = 240_000L
+    private const val HISTORY_STEP_TIMEOUT_MS = 90_000L
     private const val MMOL_TO_MG_DL = 18.0182
   }
 
+  private val context by lazy {
+    NitroModules.applicationContext?.applicationContext ?: throw Error("No Android context available")
+  }
   private val manager: VPOperateManager by lazy {
-    val context = NitroModules.applicationContext ?: throw Error("No Android context available")
-    VPOperateManager.getInstance().apply { init(context.applicationContext) }
+    VPOperateManager.getInstance().apply { init(context) }
   }
   private val mainHandler = Handler(Looper.getMainLooper())
   private var connectedMac: String? = null
   private var watchDays = 3
+
+  // Raw band responses for the device check report (guarded by rawLock)
+  private val rawLock = Any()
+  private var rawConnect = JSONObject()
+  private val historyFields = sortedMapOf<String, FieldCoverage>()
+  private val getterCache = mutableMapOf<Class<*>, List<Method>>()
+
+  private class FieldCoverage {
+    var records = 0
+    val fieldsWithData = sortedSetOf<String>()
+  }
 
   // JS listeners (Nitro calls them on the JS thread)
   private var onMeasurement: ((BandMeasurement) -> Unit)? = null
@@ -129,6 +156,7 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
     }
 
     log("connecting")
+    synchronized(rawLock) { rawConnect = JSONObject() }
     manager.setDeviceShowConfirm(false)
     manager.connectDevice(
       mac,
@@ -166,6 +194,7 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
       writeResponse("confirmDevicePwd") { fail("Password command failed") },
       object : IPwdDataListener {
         override fun onPwdDataChange(data: PwdData) {
+          putRaw("password", data)
           deviceNumber = data.getDeviceNumber()
           firmwareVersion = data.getDeviceVersion() ?: ""
           val status = data.getmStatus()
@@ -180,9 +209,11 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
       },
       object : IDeviceFuctionDataListener {
         override fun onFunctionSupportDataChange(data: FunctionDeviceSupportData) {
+          putRaw("functionSupport", data)
           if (!functionsReceived.compareAndSet(false, true)) return
           watchDays = data.getWathcDay().coerceAtLeast(1)
           val capabilities = capabilities(data)
+          val features = features(data)
           syncPersonInfo(profile) {
             mainHandler.removeCallbacks(timeout)
             once.resolve(
@@ -191,22 +222,23 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
                 firmwareVersion = firmwareVersion,
                 watchDays = watchDays.toDouble(),
                 capabilities = capabilities.toTypedArray(),
+                features = features,
               ),
             )
           }
         }
 
-        override fun onDeviceFunctionPackage1Report(data: DeviceFunctionPackage1) {}
-        override fun onDeviceFunctionPackage2Report(data: DeviceFunctionPackage2) {}
-        override fun onDeviceFunctionPackage3Report(data: DeviceFunctionPackage3) {}
-        override fun onDeviceFunctionPackage4Report(data: DeviceFunctionPackage4) {}
-        override fun onDeviceFunctionPackage5Report(data: DeviceFunctionPackage5) {}
+        override fun onDeviceFunctionPackage1Report(data: DeviceFunctionPackage1) = putRaw("functionPackage1", data)
+        override fun onDeviceFunctionPackage2Report(data: DeviceFunctionPackage2) = putRaw("functionPackage2", data)
+        override fun onDeviceFunctionPackage3Report(data: DeviceFunctionPackage3) = putRaw("functionPackage3", data)
+        override fun onDeviceFunctionPackage4Report(data: DeviceFunctionPackage4) = putRaw("functionPackage4", data)
+        override fun onDeviceFunctionPackage5Report(data: DeviceFunctionPackage5) = putRaw("functionPackage5", data)
       },
       object : ISocialMsgDataListener {
-        override fun onSocialMsgSupportDataChange(data: FunctionSocailMsgData) {}
-        override fun onSocialMsgSupportDataChange2(data: FunctionSocailMsgData) {}
+        override fun onSocialMsgSupportDataChange(data: FunctionSocailMsgData) = putRaw("socialMsg", data)
+        override fun onSocialMsgSupportDataChange2(data: FunctionSocailMsgData) = putRaw("socialMsg2", data)
       },
-      ICustomSettingDataListener { _: CustomSettingData? -> },
+      ICustomSettingDataListener { data: CustomSettingData? -> putRaw("customSettings", data) },
       password,
       true,
     )
@@ -243,6 +275,35 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
       if (has(data.getEcg())) add("ecg")
       if (has(data.getBloodGlucose())) add("glucose")
     }
+  }
+
+  /** Everything health-related the band reports about itself (for the device check report). */
+  private fun features(data: FunctionDeviceSupportData): Map<String, String> = buildMap {
+    fun status(name: String, value: EFunctionStatus?) = put(name, value?.name ?: "UNKNOWN")
+    status("heartRate", data.getHeartDetect())
+    status("bloodPressure", data.getBp())
+    status("spo2", data.getSpo2H())
+    status("spo2Apnea", data.getSpo2HBreathBreak())
+    status("precisionSleep", data.getPrecisionSleep())
+    status("temperature", data.getTemperatureFunction())
+    status("ecg", data.getEcg())
+    status("bloodGlucose", data.getBloodGlucose())
+    status("bloodGlucoseRisk", data.getBloodGlucoseRiskAssessment())
+    status("hrv", data.getHrvFunction())
+    status("allDayHrv", data.getAllDayHrvFunc())
+    status("breathing", data.getBeathFunction())
+    status("fatigue", data.getFatigue())
+    status("stress", data.getStress())
+    status("bloodComponents", data.getBloodComponent())
+    status("bodyComposition", data.getBodyComponent())
+    status("womenHealth", data.getWomen())
+    status("autoMeasure", data.getAutoMeasure())
+    put("ecgType", data.getEcgType().toString())
+    put("temperatureType", data.getTemptureType().toString())
+    put("spo2Type", data.getSpo2hType().toString())
+    put("hrvType", data.getHrvType().toString())
+    put("originProtocolVersion", data.getOriginProtcolVersion().toString())
+    put("watchDays", data.getWathcDay().toString())
   }
 
   override fun disconnect(): Promise<Unit> {
@@ -383,21 +444,16 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
         emitMeasurement(MeasurementType.ECG, "FAILED", error = true)
         return
       }
-      // Waveform samples stay on the phone for now (the API expects a file reference)
+      // Band time, so the same record read later from the history gets the same clientId
+      val time = millis(result.getTimeBean(), null) ?: System.currentTimeMillis().toDouble()
       emitMeasurement(
         MeasurementType.ECG,
         "DONE",
         progress = 100,
-        values = mapOf(
-          "heartRate" to result.getAveHeart().toDouble(),
-          "hrv" to result.getAveHrv().toDouble(),
-          "qt" to result.getAveQT().toDouble(),
-          "respiratoryRate" to result.getAveResRate().toDouble(),
-          "durationSec" to result.getDuration().toDouble(),
-          "sampleRate" to result.getFrequency().toDouble(),
-          "sampleCount" to (result.getFilterSignals()?.size ?: 0).toDouble(),
-        ),
+        values = ecgSummary(result),
         done = true,
+        timestamp = time,
+        file = saveEcgWaveform(result, time),
       )
     }
 
@@ -441,95 +497,356 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
     return promise
   }
 
+  /**
+   * Reads the history in steps (one SDK command at a time). Each step has its own timeout,
+   * so a command the band does not answer cannot block the rest.
+   */
   override fun syncHistory(): Promise<Array<BandReading>> {
     val promise = Promise<Array<BandReading>>()
     val once = Once(promise)
     val readings = mutableListOf<BandReading>()
+    synchronized(rawLock) { historyFields.clear() }
     val finish = Runnable {
       log("history: ${readings.size} readings")
       once.resolve(readings.toTypedArray())
     }
     mainHandler.postDelayed(finish, HISTORY_TIMEOUT_MS)
 
-    manager.readAllHealthData(object : IAllHealthDataListener {
-      override fun onProgress(progress: Float) {
-        onSyncProgress?.invoke(progress.toDouble())
-      }
-
-      override fun onSleepDataChange(day: String?, sleep: SleepData?) {
-        sleep ?: return
-        val start = millis(sleep.getSleepDown(), sleep.getDate()) ?: return
-        val end = millis(sleep.getSleepUp(), sleep.getDate())
-        readings += BandReading(
-          type = "sleep_session",
-          unit = "min",
-          timestamp = start,
-          value = null,
-          values = buildMap {
-            put("durationMinutes", sleep.getAllSleepTime().toDouble())
-            put("deepMinutes", sleep.getDeepSleepTime().toDouble())
-            put("lightMinutes", sleep.getLowSleepTime().toDouble())
-            put("wakeCount", sleep.getWakeCount().toDouble())
-            put("quality", sleep.getSleepQulity().toDouble())
-            end?.let { put("endTimestamp", it) }
-          },
-        )
-      }
-
-      override fun onReadSleepComplete() {}
-
-      override fun onOringinFiveMinuteDataChange(origin: OriginData?) {
-        origin ?: return
-        val temperature = origin.getTemperature()
-        val time = millis(origin.getmTime(), origin.getDate()) ?: return
-        if (temperature > 0) {
-          readings += BandReading("temperature", "°C", time, temperature, null)
+    val features = VpSpGetUtil.getVpSpVariInstance(context)
+    // Protocol 3/5 bands send 5-min data as OriginData3 (with SpO2 + glucose)
+    val originV3 = features.getOriginProtocolVersion().let { it == 3 || it == 5 }
+    val steps = buildList<HistoryStep> {
+      if (originV3) {
+        add(HistoryStep("sleep") { progress, next -> readSleep(readings, progress, next) })
+        add(HistoryStep("origin v3") { progress, next -> readOriginV3(readings, progress, next) })
+      } else {
+        add(HistoryStep("sleep + origin") { progress, next -> readSleepAndOrigin(readings, progress, next) })
+        if (features.isSupportSpo2h()) {
+          add(HistoryStep("spo2") { progress, next -> readSpo2History(readings, progress, next) })
         }
       }
-
-      override fun onOringinHalfHourDataChange(halfHour: OriginHalfHourData?) {
-        halfHour ?: return
-        halfHour.getHalfHourRateDatas()?.forEach { rate ->
-          val time = millis(rate.getTime(), rate.getDate()) ?: return@forEach
-          if (rate.getRateValue() > 0) {
-            readings += BandReading("heart_rate", "bpm", time, rate.getRateValue().toDouble(), null)
-          }
-        }
-        halfHour.getHalfHourSportDatas()?.forEach { sport ->
-          val time = millis(sport.getTime(), sport.getDate()) ?: return@forEach
-          if (sport.getStepValue() > 0) {
-            readings += BandReading(
-              "steps", "steps", time, null,
-              mapOf(
-                "count" to sport.getStepValue().toDouble(),
-                "distanceM" to sport.getDisValue() * 1000,
-                "kcal" to sport.getCalValue(),
-              ),
-            )
-          }
-        }
-        halfHour.getHalfHourBps()?.forEach { bp ->
-          val time = millis(bp.getTime(), bp.getDate()) ?: return@forEach
-          if (bp.getHighValue() > 0) {
-            readings += BandReading(
-              "blood_pressure", "mmHg", time, null,
-              mapOf("systolic" to bp.getHighValue().toDouble(), "diastolic" to bp.getLowValue().toDouble()),
-            )
-          }
-        }
+      if (features.isSupportECG()) {
+        add(HistoryStep("ecg") { _, next -> readEcgRecords(readings, next) })
       }
-
-      override fun onReadOriginComplete() {
-        mainHandler.removeCallbacks(finish)
-        finish.run()
-      }
-
-      override fun onReadTimeout(day: Int) {
-        log("history read timeout for day $day")
-      }
-    }, watchDays)
+    }
+    runSteps(steps, 0) {
+      mainHandler.removeCallbacks(finish)
+      finish.run()
+    }
     return promise
   }
+
+  private class HistoryStep(val name: String, val run: (progress: (Float) -> Unit, next: () -> Unit) -> Unit)
+
+  private fun runSteps(steps: List<HistoryStep>, index: Int, onDone: () -> Unit) {
+    if (index >= steps.size) {
+      onDone()
+      return
+    }
+    val step = steps[index]
+    val advanced = AtomicBoolean(false)
+    val timeout = Runnable {
+      if (advanced.compareAndSet(false, true)) {
+        log("history step '${step.name}' timed out")
+        runSteps(steps, index + 1, onDone)
+      }
+    }
+    mainHandler.postDelayed(timeout, HISTORY_STEP_TIMEOUT_MS)
+    val progress: (Float) -> Unit = { value ->
+      onSyncProgress?.invoke((index + value.coerceIn(0f, 1f)).toDouble() / steps.size)
+    }
+    val next = {
+      if (advanced.compareAndSet(false, true)) {
+        mainHandler.removeCallbacks(timeout)
+        mainHandler.post { runSteps(steps, index + 1, onDone) }
+      }
+    }
+    log("history step '${step.name}'")
+    step.run(progress, next)
+  }
+
+  /** Older bands: sleep + 5-min temperature + 30-min HR/steps/BP in one command. */
+  private fun readSleepAndOrigin(readings: MutableList<BandReading>, progress: (Float) -> Unit, next: () -> Unit) {
+    manager.readAllHealthData(object : IAllHealthDataListener {
+      override fun onProgress(value: Float) = progress(value)
+      override fun onSleepDataChange(day: String?, sleep: SleepData?) = addSleep(readings, sleep)
+      override fun onReadSleepComplete() {}
+      override fun onOringinFiveMinuteDataChange(origin: OriginData?) = addFiveMinute(readings, origin)
+      override fun onOringinHalfHourDataChange(halfHour: OriginHalfHourData?) = addHalfHour(readings, halfHour)
+      override fun onReadOriginComplete() = next()
+      override fun onReadTimeout(day: Int) = log("history read timeout for day $day")
+    }, watchDays)
+  }
+
+  private fun readSleep(readings: MutableList<BandReading>, progress: (Float) -> Unit, next: () -> Unit) {
+    manager.readSleepData(
+      writeResponse("readSleepData") { next() },
+      object : ISleepDataListener {
+        override fun onSleepDataChange(day: String?, sleep: SleepData?) = addSleep(readings, sleep)
+        override fun onSleepProgress(value: Float) = progress(value)
+        override fun onSleepProgressDetail(day: String?, packageNumber: Int) {}
+        override fun onReadSleepComplete() = next()
+      },
+      watchDays,
+    )
+  }
+
+  /** Protocol 3/5 bands: 5-min data with SpO2 and glucose, plus the 30-min summary. */
+  private fun readOriginV3(readings: MutableList<BandReading>, progress: (Float) -> Unit, next: () -> Unit) {
+    manager.readOriginData(
+      writeResponse("readOriginData") { next() },
+      object : IOriginData3Listener {
+        override fun onOriginFiveMinuteListDataChange(list: List<OriginData3>?) {
+          list?.forEach { origin ->
+            addFiveMinute(readings, origin)
+            val mmol = origin.getBloodGlucose()
+            val time = millis(origin.getmTime(), origin.getDate()) ?: return@forEach
+            if (mmol > 0) {
+              readings += reading("glucose", "mg/dL", time, value = Math.round(mmol * MMOL_TO_MG_DL).toDouble())
+            }
+          }
+        }
+
+        override fun onOriginHalfHourDataChange(halfHour: OriginHalfHourData?) = addHalfHour(readings, halfHour)
+        override fun onOriginHRVOriginListDataChange(list: List<HRVOriginData>?) {
+          list?.forEach { recordFields("HRVOriginData", it) }
+        }
+        override fun onOriginSpo2OriginListDataChange(list: List<Spo2hOriginData>?) {
+          list?.forEach { addSpo2(readings, it) }
+        }
+
+        override fun onReadOriginProgressDetail(day: Int, date: String?, allPackage: Int, currentPackage: Int) {}
+        override fun onReadOriginProgress(value: Float) = progress(value)
+        override fun onReadOriginComplete() = next()
+        override fun onReadTimeout(day: Int) = log("history read timeout for day $day")
+      },
+      watchDays,
+    )
+  }
+
+  /** Older bands keep SpO2 in a separate store. */
+  private fun readSpo2History(readings: MutableList<BandReading>, progress: (Float) -> Unit, next: () -> Unit) {
+    manager.readSpo2hOrigin(
+      writeResponse("readSpo2hOrigin") { next() },
+      object : ISpo2hOriginDataListener {
+        override fun onReadOriginProgress(value: Float) = progress(value)
+        override fun onReadOriginProgressDetail(day: Int, date: String?, allPackage: Int, currentPackage: Int) {}
+        override fun onSpo2hOriginListener(data: Spo2hOriginData?) {
+          data?.let { addSpo2(readings, it) }
+        }
+
+        override fun onReadOriginComplete() = next()
+      },
+      watchDays,
+    )
+  }
+
+  /** ECG records stored on the band (manual + automatic), each with its waveform file. */
+  private fun readEcgRecords(readings: MutableList<BandReading>, next: () -> Unit) {
+    manager.readECGData(
+      writeResponse("readECGData") { next() },
+      TimeData(0, 0, 0, 0, 0, 0, 0),
+      EEcgDataType.ALL,
+      object : IECGReadDataListener {
+        override fun readDataFinish(results: List<EcgDetectResult>?) {
+          results?.forEach { recordFields("EcgDetectResult", it) }
+          results?.filter { it.isSuccess() }?.forEach { result ->
+            val time = millis(result.getTimeBean(), null) ?: return@forEach
+            readings += reading("ecg", "bpm", time, values = ecgSummary(result), file = saveEcgWaveform(result, time))
+          }
+          next()
+        }
+
+        override fun readDiagnosisDataFinish(list: List<EcgDiagnosis>?) {}
+      },
+    )
+  }
+
+  private fun addSleep(readings: MutableList<BandReading>, sleep: SleepData?) {
+    sleep ?: return
+    recordFields("SleepData", sleep)
+    val start = millis(sleep.getSleepDown(), sleep.getDate()) ?: return
+    val end = millis(sleep.getSleepUp(), sleep.getDate())
+    readings += reading(
+      "sleep_session", "min", start,
+      values = buildMap {
+        put("durationMinutes", sleep.getAllSleepTime().toDouble())
+        put("deepMinutes", sleep.getDeepSleepTime().toDouble())
+        put("lightMinutes", sleep.getLowSleepTime().toDouble())
+        put("wakeCount", sleep.getWakeCount().toDouble())
+        put("quality", sleep.getSleepQulity().toDouble())
+        end?.let { put("endTimestamp", it) }
+      },
+    )
+  }
+
+  private fun addFiveMinute(readings: MutableList<BandReading>, origin: OriginData?) {
+    origin ?: return
+    recordFields(origin.javaClass.simpleName, origin)
+    val temperature = origin.getTemperature()
+    val time = millis(origin.getmTime(), origin.getDate()) ?: return
+    if (temperature > 0) {
+      readings += reading("temperature", "°C", time, value = temperature)
+    }
+  }
+
+  private fun addHalfHour(readings: MutableList<BandReading>, halfHour: OriginHalfHourData?) {
+    halfHour ?: return
+    recordFields("OriginHalfHourData", halfHour)
+    halfHour.getHalfHourRateDatas()?.forEach { recordFields("HalfHourRateData", it) }
+    halfHour.getHalfHourSportDatas()?.forEach { recordFields("HalfHourSportData", it) }
+    halfHour.getHalfHourBps()?.forEach { recordFields("HalfHourBpData", it) }
+    halfHour.getHalfHourRateDatas()?.forEach { rate ->
+      val time = millis(rate.getTime(), rate.getDate()) ?: return@forEach
+      if (rate.getRateValue() > 0) {
+        readings += reading("heart_rate", "bpm", time, value = rate.getRateValue().toDouble())
+      }
+    }
+    halfHour.getHalfHourSportDatas()?.forEach { sport ->
+      val time = millis(sport.getTime(), sport.getDate()) ?: return@forEach
+      if (sport.getStepValue() > 0) {
+        readings += reading(
+          "steps", "steps", time,
+          values = mapOf(
+            "count" to sport.getStepValue().toDouble(),
+            "distanceM" to sport.getDisValue() * 1000,
+            "kcal" to sport.getCalValue(),
+          ),
+        )
+      }
+    }
+    halfHour.getHalfHourBps()?.forEach { bp ->
+      val time = millis(bp.getTime(), bp.getDate()) ?: return@forEach
+      if (bp.getHighValue() > 0) {
+        readings += reading(
+          "blood_pressure", "mmHg", time,
+          values = mapOf("systolic" to bp.getHighValue().toDouble(), "diastolic" to bp.getLowValue().toDouble()),
+        )
+      }
+    }
+  }
+
+  private fun addSpo2(readings: MutableList<BandReading>, data: Spo2hOriginData) {
+    recordFields("Spo2hOriginData", data)
+    val oxygen = data.getOxygenValue()
+    val time = millis(data.getmTime(), data.getDate()) ?: return
+    if (oxygen in 1..100) {
+      readings += reading("spo2", "%", time, value = oxygen.toDouble())
+    }
+  }
+
+  private fun ecgSummary(result: EcgDetectResult) = mapOf(
+    "heartRate" to result.getAveHeart().toDouble(),
+    "hrv" to result.getAveHrv().toDouble(),
+    "qt" to result.getAveQT().toDouble(),
+    "respiratoryRate" to result.getAveResRate().toDouble(),
+    "durationSec" to result.getDuration().toDouble(),
+    "sampleRate" to result.getFrequency().toDouble(),
+    "sampleCount" to (result.getFilterSignals()?.size ?: 0).toDouble(),
+  )
+
+  /**
+   * Saves the ECG waveform in app-private storage (the API takes a file reference,
+   * not inline samples). Same record => same file name, so a re-read overwrites it.
+   */
+  private fun saveEcgWaveform(result: EcgDetectResult, time: Double): String? {
+    val filtered = result.getFilterSignals()?.takeIf { it.isNotEmpty() }
+    val raw = result.getOriginSign()?.takeIf { it.isNotEmpty() }
+    if (filtered == null && raw == null) return null
+    return runCatching {
+      val dir = File(context.filesDir, "ecg").apply { mkdirs() }
+      val file = File(dir, "ecg_${time.toLong()}.json")
+      val json = JSONObject().apply {
+        put("timestamp", time.toLong())
+        put("sampleRate", result.getFrequency())
+        put("durationSec", result.getDuration())
+        filtered?.let { put("samples", JSONArray(it)) }
+        raw?.let { put("rawSamples", JSONArray(it)) }
+      }
+      file.writeText(json.toString())
+      file.absolutePath
+    }.onFailure { log("ECG waveform not saved (${it.javaClass.simpleName})") }.getOrNull()
+  }
+
+  // endregion
+
+  // region Raw responses (device check report)
+
+  override fun getRawResponses(): String = synchronized(rawLock) {
+    JSONObject().apply {
+      put("connect", JSONObject(rawConnect.toString()))
+      put(
+        "historyFields",
+        JSONObject().apply {
+          historyFields.forEach { (kind, coverage) ->
+            put(
+              kind,
+              JSONObject()
+                .put("records", coverage.records)
+                .put("fieldsWithData", JSONArray(coverage.fieldsWithData.toList())),
+            )
+          }
+        },
+      )
+    }.toString(2)
+  }
+
+  /** Device configuration: every getter value (passwords masked). No health values here. */
+  private fun putRaw(key: String, data: Any?) {
+    data ?: return
+    val json = JSONObject()
+    getters(data.javaClass).forEach { method ->
+      val name = fieldName(method)
+      val value = runCatching { method.invoke(data) }.getOrNull() ?: return@forEach
+      json.put(
+        name,
+        when {
+          name.contains("pwd", ignoreCase = true) || name.contains("password", ignoreCase = true) -> "***"
+          value is Number || value is Boolean || value is String -> value
+          value is Enum<*> -> value.name
+          value is IntArray -> JSONArray(value.toList())
+          value is Collection<*> -> "${value.size} items"
+          value is Array<*> -> "${value.size} items"
+          else -> value.toString()
+        },
+      )
+    }
+    synchronized(rawLock) { rawConnect.put(key, json) }
+  }
+
+  /** Health records: counts which fields carry data, never the values themselves. */
+  private fun recordFields(kind: String, record: Any) {
+    val filled = getters(record.javaClass).filter { method ->
+      when (val value = runCatching { method.invoke(record) }.getOrNull()) {
+        null -> false
+        is Number -> value.toDouble() != 0.0
+        is Boolean -> value
+        is String -> value.isNotEmpty()
+        is IntArray -> value.any { it != 0 }
+        is Collection<*> -> value.isNotEmpty()
+        is Array<*> -> value.isNotEmpty()
+        else -> true
+      }
+    }.map(::fieldName)
+    synchronized(rawLock) {
+      val coverage = historyFields.getOrPut(kind) { FieldCoverage() }
+      coverage.records++
+      coverage.fieldsWithData += filled
+    }
+  }
+
+  private fun getters(type: Class<*>): List<Method> = synchronized(getterCache) {
+    getterCache.getOrPut(type) {
+      type.methods.filter { method ->
+        method.parameterTypes.isEmpty() &&
+          method.declaringClass != Any::class.java &&
+          (method.name.startsWith("get") || method.name.startsWith("is"))
+      }.sortedBy { it.name }
+    }
+  }
+
+  private fun fieldName(method: Method) =
+    method.name.removePrefix("get").removePrefix("is").replaceFirstChar { it.lowercase() }
 
   // endregion
 
@@ -543,6 +860,8 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
     values: Map<String, Double>? = null,
     done: Boolean = false,
     error: Boolean = false,
+    timestamp: Double = System.currentTimeMillis().toDouble(),
+    file: String? = null,
   ) {
     onMeasurement?.invoke(
       BandMeasurement(
@@ -553,10 +872,20 @@ class HybridAliBandSdk : HybridAliBandSdkSpec() {
         values = values,
         done = done,
         error = error,
-        timestamp = System.currentTimeMillis().toDouble(),
+        timestamp = timestamp,
+        file = file,
       ),
     )
   }
+
+  private fun reading(
+    type: String,
+    unit: String,
+    timestamp: Double,
+    value: Double? = null,
+    values: Map<String, Double>? = null,
+    file: String? = null,
+  ) = BandReading(type = type, unit = unit, timestamp = timestamp, value = value, values = values, file = file)
 
   /** TimeData from the band is in the phone's local time; `date` (yyyy-MM-dd) fills in a missing day. */
   private fun millis(time: TimeData?, date: String?): Double? {

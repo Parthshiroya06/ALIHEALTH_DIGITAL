@@ -140,6 +140,16 @@ const DeviceScreen = () => {
               : ''}
           </Text>
         )}
+        {pairedDevice && (
+          <CommonButton
+            title={localize('DeviceReportScreen')}
+            onPress={() =>
+              navigation.dispatch(CommonActions.navigate('DeviceReportScreen'))
+            }
+            buttonStyle={styles.fullButton}
+            TitleStyle={{color: Colors.offWhite}}
+          />
+        )}
         {connectionState === 'connected' && (
           <View style={styles.row}>
             <CommonButton

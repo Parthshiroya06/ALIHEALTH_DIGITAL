@@ -28,6 +28,7 @@ namespace margelo::nitro::alibandsdk { struct BandMeasurement; }
 #include "JBandInfo.hpp"
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <NitroModules/JUnit.hpp>
 #include "BandSteps.hpp"
 #include "JBandSteps.hpp"
@@ -36,7 +37,6 @@ namespace margelo::nitro::alibandsdk { struct BandMeasurement; }
 #include "BandReading.hpp"
 #include "JBandReading.hpp"
 #include <optional>
-#include <unordered_map>
 #include "BandProfile.hpp"
 #include "JBandProfile.hpp"
 #include "MeasurementType.hpp"
@@ -180,6 +180,11 @@ namespace margelo::nitro::alibandsdk {
       });
       return __promise;
     }();
+  }
+  std::string JHybridAliBandSdkSpec::getRawResponses() {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<jni::JString>()>("getRawResponses");
+    auto __result = method(_javaPart);
+    return __result->toStdString();
   }
   std::shared_ptr<Promise<std::vector<BandReading>>> JHybridAliBandSdkSpec::syncHistory() {
     static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>()>("syncHistory");

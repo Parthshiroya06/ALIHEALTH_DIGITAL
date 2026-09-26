@@ -51,6 +51,8 @@ namespace margelo::nitro::alibandsdk {
       jboolean error = this->getFieldValue(fieldError);
       static const auto fieldTimestamp = clazz->getField<double>("timestamp");
       double timestamp = this->getFieldValue(fieldTimestamp);
+      static const auto fieldFile = clazz->getField<jni::JString>("file");
+      jni::local_ref<jni::JString> file = this->getFieldValue(fieldFile);
       return BandMeasurement(
         type->toCpp(),
         state->toStdString(),
@@ -66,7 +68,8 @@ namespace margelo::nitro::alibandsdk {
         }()) : std::nullopt,
         static_cast<bool>(done),
         static_cast<bool>(error),
-        timestamp
+        timestamp,
+        file != nullptr ? std::make_optional(file->toStdString()) : std::nullopt
       );
     }
 
@@ -76,7 +79,7 @@ namespace margelo::nitro::alibandsdk {
      */
     [[maybe_unused]]
     static jni::local_ref<JBandMeasurement::javaobject> fromCpp(const BandMeasurement& value) {
-      using JSignature = JBandMeasurement(jni::alias_ref<JMeasurementType>, jni::alias_ref<jni::JString>, double, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JMap<jni::JString, jni::JDouble>>, jboolean, jboolean, double);
+      using JSignature = JBandMeasurement(jni::alias_ref<JMeasurementType>, jni::alias_ref<jni::JString>, double, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JMap<jni::JString, jni::JDouble>>, jboolean, jboolean, double, jni::alias_ref<jni::JString>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -94,7 +97,8 @@ namespace margelo::nitro::alibandsdk {
         }() : nullptr,
         value.done,
         value.error,
-        value.timestamp
+        value.timestamp,
+        value.file.has_value() ? jni::make_jstring(value.file.value()) : nullptr
       );
     }
   };

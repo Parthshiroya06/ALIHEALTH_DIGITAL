@@ -23,6 +23,8 @@ export interface BandInfo {
   watchDays: number;
   /** Metric types the band supports, e.g. "spo2", "ecg" */
   capabilities: string[];
+  /** Raw SDK function flags for the device check report, e.g. { spo2: "SUPPORT_OPEN", ecgType: "1" } */
+  features: Record<string, string>;
 }
 
 export interface BandBattery {
@@ -46,6 +48,8 @@ export interface BandReading {
   timestamp: number; // epoch ms, device local time converted to UTC
   value?: number;
   values?: Record<string, number>;
+  /** ECG only: local path of the saved waveform (JSON with samples + sample rate) */
+  file?: string;
 }
 
 /** Progress of an on-demand measurement. */
@@ -58,6 +62,8 @@ export interface BandMeasurement {
   done: boolean;
   error: boolean;
   timestamp: number;
+  /** ECG only: local path of the saved waveform (JSON with samples + sample rate) */
+  file?: string;
 }
 
 /**
@@ -79,7 +85,15 @@ export interface AliBandSdk
 
   readCurrentSteps(): Promise<BandSteps>;
   readBattery(): Promise<BandBattery>;
-  /** Sleep + 30-min HR/steps/BP + 5-min temperature stored on the band. */
+  /**
+   * JSON for the device check report: everything the band sent on connect
+   * (configuration, passwords masked) + which history fields had data (no values).
+   */
+  getRawResponses(): string;
+  /**
+   * History stored on the band: sleep, 30-min HR/steps/BP, 5-min temperature,
+   * SpO2, glucose (newer bands) and ECG records (with waveform files).
+   */
   syncHistory(): Promise<BandReading[]>;
 
   // Listeners (one of each; the latest call replaces the previous one)

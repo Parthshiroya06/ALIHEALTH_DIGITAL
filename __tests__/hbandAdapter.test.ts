@@ -1,3 +1,4 @@
+import {AliBandSdk} from 'react-native-aliband-sdk';
 import {HBandAdapter} from '../src/services/WearableService/HBandAdapter';
 import {IHealthReading, IMeasurementStatus} from '../src/types';
 
@@ -10,7 +11,9 @@ jest.mock('react-native-aliband-sdk', () => ({
       firmwareVersion: '1.2.3',
       watchDays: 3,
       capabilities: ['heart_rate', 'steps', 'blood_pressure'],
+      features: {spo2: 'UNSUPPORT', ecgType: '0'},
     })),
+    getRawResponses: jest.fn(() => '{"connect":{}}'),
     readBattery: jest.fn(async () => ({isPercent: true, percent: 80})),
     startMeasurement: jest.fn(async () => {}),
     stopMeasurement: jest.fn(async () => {}),
@@ -76,7 +79,9 @@ describe('HBandAdapter', () => {
       firmwareVersion: '1.2.3',
       watchDays: 3,
       batteryPercent: 80,
+      sdkFeatures: {spo2: 'UNSUPPORT', ecgType: '0'},
     });
+    expect(adapter.getRawResponses()).toBe('{"connect":{}}');
   });
 
   it('stores at most one live heart-rate value per interval', async () => {
@@ -171,5 +176,53 @@ describe('HBandAdapter', () => {
     expect(newer).toHaveLength(1);
     // Re-reading the same data gives the same clientId, so the API can dedup
     expect(newer[0].clientId).toBe(all[1].clientId);
+  });
+
+  it('maps SpO2, glucose and ECG history, keeping the ECG waveform file', async () => {
+    const {adapter} = await connectedAdapter();
+    const time = Date.UTC(2026, 8, 24, 3, 0);
+    (AliBandSdk!.syncHistory as jest.Mock).mockResolvedValueOnce([
+      {type: 'spo2', unit: '%', timestamp: time, value: 97},
+      {type: 'glucose', unit: 'mg/dL', timestamp: time, value: 101},
+      {
+        type: 'ecg',
+        unit: 'bpm',
+        timestamp: time,
+        values: {heartRate: 68, sampleRate: 250},
+        file: '/data/ecg/ecg_1.json',
+      },
+    ]);
+    const readings = await adapter.syncHistory(null);
+
+    expect(readings.map(r => [r.type, r.unit, r.quality])).toEqual([
+      ['spo2', '%', 'measured'],
+      ['glucose', 'mg/dL', 'estimated'],
+      ['ecg', 'bpm', 'measured'],
+    ]);
+    expect(readings[2]).toMatchObject({
+      value: {heartRate: 68, sampleRate: 250},
+      waveformFile: '/data/ecg/ecg_1.json',
+    });
+    expect(readings[0]).not.toHaveProperty('waveformFile');
+  });
+
+  it('keeps the waveform file of a live ECG measurement', async () => {
+    const {adapter, readings, onStatus} = await connectedAdapter();
+    await adapter.startMeasurement('ecg', onStatus);
+    measurement({
+      type: 'ecg',
+      state: 'DONE',
+      progress: 100,
+      done: true,
+      values: {heartRate: 70},
+      timestamp: Date.UTC(2026, 8, 24, 10, 0),
+      file: '/data/ecg/ecg_2.json',
+    });
+    expect(readings).toHaveLength(1);
+    expect(readings[0]).toMatchObject({
+      type: 'ecg',
+      waveformFile: '/data/ecg/ecg_2.json',
+      timestamp: '2026-09-24T10:00:00.000Z',
+    });
   });
 });

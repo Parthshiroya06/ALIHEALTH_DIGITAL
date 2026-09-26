@@ -26,7 +26,7 @@ const DeviceListItem = (props: Props) => {
           {device.family} · RSSI {device.rssi ?? '-'}
         </Text>
       </View>
-      <Text style={[textStyle(14), {color: colors.DarkSlateBlue}]}>
+      <Text style={[textStyle(14, 'Roboto200'), {color: colors.link}]}>
         {localize('connect')}
       </Text>
     </Pressable>

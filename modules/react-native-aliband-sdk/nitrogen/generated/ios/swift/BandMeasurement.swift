@@ -18,7 +18,7 @@ public extension BandMeasurement {
   /**
    * Create a new instance of `BandMeasurement`.
    */
-  init(type: MeasurementType, state: String, progress: Double, value: Double?, values: Dictionary<String, Double>?, done: Bool, error: Bool, timestamp: Double) {
+  init(type: MeasurementType, state: String, progress: Double, value: Double?, values: Dictionary<String, Double>?, done: Bool, error: Bool, timestamp: Double, file: String?) {
     self.init(type, std.string(state), progress, { () -> bridge.std__optional_double_ in
       if let __unwrappedValue = value {
         return bridge.create_std__optional_double_(__unwrappedValue)
@@ -37,7 +37,13 @@ public extension BandMeasurement {
       } else {
         return .init()
       }
-    }(), done, error, timestamp)
+    }(), done, error, timestamp, { () -> bridge.std__optional_std__string_ in
+      if let __unwrappedValue = file {
+        return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
+      } else {
+        return .init()
+      }
+    }())
   }
 
   @inline(__always)
@@ -100,5 +106,17 @@ public extension BandMeasurement {
   @inline(__always)
   var timestamp: Double {
     return self.__timestamp
+  }
+  
+  @inline(__always)
+  var file: String? {
+    return { () -> String? in
+      if bridge.has_value_std__optional_std__string_(self.__file) {
+        let __unwrapped = bridge.get_std__optional_std__string_(self.__file)
+        return String(__unwrapped)
+      } else {
+        return nil
+      }
+    }()
   }
 }

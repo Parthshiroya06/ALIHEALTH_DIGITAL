@@ -34,4 +34,6 @@ export interface WearableAdapter {
     onStatus: (status: IMeasurementStatus) => void,
   ): Promise<void>;
   stopMeasurement?(type: MeasurableMetric): Promise<void>;
+  /** Optional: raw vendor responses (JSON) for the device check report. */
+  getRawResponses?(): string | null;
 }

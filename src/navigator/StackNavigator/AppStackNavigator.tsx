@@ -2,9 +2,9 @@ import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {
   DebugScreen,
+  DeviceReportScreen,
   LiveReadingsScreen,
   SyncStatusScreen,
-  WebViewScreen,
 } from '@screen';
 import {RootStackParamList} from '@types';
 import {localize} from '@languages';
@@ -14,16 +14,6 @@ const AppStack = createNativeStackNavigator<RootStackParamList>();
 const AppStackNavigator = () => {
   return (
     <AppStack.Group>
-      <AppStack.Screen
-        name="WebViewScreen"
-        component={WebViewScreen}
-        options={({route}) => {
-          return {
-            headerTitle: route.params?.title ?? '',
-            headerShown: true,
-          };
-        }}
-      />
       <AppStack.Screen
         name="LiveReadingsScreen"
         component={LiveReadingsScreen}
@@ -36,6 +26,14 @@ const AppStackNavigator = () => {
         name="SyncStatusScreen"
         component={SyncStatusScreen}
         options={{headerShown: true, headerTitle: localize('SyncStatusScreen')}}
+      />
+      <AppStack.Screen
+        name="DeviceReportScreen"
+        component={DeviceReportScreen}
+        options={{
+          headerShown: true,
+          headerTitle: localize('DeviceReportScreen'),
+        }}
       />
       {__DEV__ && (
         <AppStack.Screen

@@ -6,25 +6,26 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: responsiveWidth(4),
   },
-  statusCard: {
+  content: {
+    gap: responsiveHeight(1),
+    paddingBottom: responsiveHeight(2),
+  },
+  card: {
     padding: responsiveWidth(4),
     borderRadius: responsiveWidth(3),
     gap: responsiveHeight(0.5),
   },
-  smallButton: {
-    width: responsiveWidth(40),
-    alignSelf: 'flex-start',
-  },
-  fullButton: {
-    width: '100%',
-  },
   row: {
+    padding: responsiveWidth(3.5),
+    borderRadius: responsiveWidth(3),
+    gap: responsiveHeight(0.3),
+  },
+  featureRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  list: {
-    paddingVertical: responsiveHeight(2),
-    gap: responsiveHeight(1),
+  shareButton: {
+    width: '100%',
   },
 });
 

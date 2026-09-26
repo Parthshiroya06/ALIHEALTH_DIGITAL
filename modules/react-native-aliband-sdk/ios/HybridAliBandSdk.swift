@@ -16,6 +16,7 @@ class HybridAliBandSdk: HybridAliBandSdkSpec {
   func readCurrentSteps() throws -> Promise<BandSteps> { notImplemented() }
   func readBattery() throws -> Promise<BandBattery> { notImplemented() }
   func syncHistory() throws -> Promise<[BandReading]> { notImplemented() }
+  func getRawResponses() throws -> String { "{}" }
   func setOnMeasurement(listener: @escaping (_ event: BandMeasurement) -> Void) throws {}
   func setOnConnectionChange(listener: @escaping (_ connected: Bool) -> Void) throws {}
   func setOnSyncProgress(listener: @escaping (_ progress: Double) -> Void) throws {}

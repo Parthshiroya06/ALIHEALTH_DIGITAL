@@ -20,6 +20,8 @@ export interface IHealthReading {
   timestamp: string; // UTC ISO-8601
   quality: ReadingQuality;
   source: ReadingSource;
+  /** ECG only: local path of the waveform file; kept on the phone until the API has a file upload */
+  waveformFile?: string;
 }
 
 /** Metrics the user can measure on demand from the bracelet. */

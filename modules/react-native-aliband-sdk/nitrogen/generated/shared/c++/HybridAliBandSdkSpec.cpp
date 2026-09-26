@@ -21,6 +21,7 @@ namespace margelo::nitro::alibandsdk {
       prototype.registerHybridMethod("stopMeasurement", &HybridAliBandSdkSpec::stopMeasurement);
       prototype.registerHybridMethod("readCurrentSteps", &HybridAliBandSdkSpec::readCurrentSteps);
       prototype.registerHybridMethod("readBattery", &HybridAliBandSdkSpec::readBattery);
+      prototype.registerHybridMethod("getRawResponses", &HybridAliBandSdkSpec::getRawResponses);
       prototype.registerHybridMethod("syncHistory", &HybridAliBandSdkSpec::syncHistory);
       prototype.registerHybridMethod("setOnMeasurement", &HybridAliBandSdkSpec::setOnMeasurement);
       prototype.registerHybridMethod("setOnConnectionChange", &HybridAliBandSdkSpec::setOnConnectionChange);

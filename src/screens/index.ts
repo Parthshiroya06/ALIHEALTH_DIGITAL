@@ -2,7 +2,7 @@ export * from './SplashScreen';
 export * from './HomeScreen';
 export * from './DeviceScreen';
 export * from './SettingScreen';
-export * from './WebViewScreen';
 export * from './LiveReadingsScreen';
 export * from './SyncStatusScreen';
 export * from './DebugScreen';
+export * from './DeviceReportScreen';

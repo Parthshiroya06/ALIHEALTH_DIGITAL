@@ -46,10 +46,11 @@ namespace margelo::nitro::alibandsdk {
     double timestamp     SWIFT_PRIVATE;
     std::optional<double> value     SWIFT_PRIVATE;
     std::optional<std::unordered_map<std::string, double>> values     SWIFT_PRIVATE;
+    std::optional<std::string> file     SWIFT_PRIVATE;
 
   public:
     BandReading() = default;
-    explicit BandReading(std::string type, std::string unit, double timestamp, std::optional<double> value, std::optional<std::unordered_map<std::string, double>> values): type(type), unit(unit), timestamp(timestamp), value(value), values(values) {}
+    explicit BandReading(std::string type, std::string unit, double timestamp, std::optional<double> value, std::optional<std::unordered_map<std::string, double>> values, std::optional<std::string> file): type(type), unit(unit), timestamp(timestamp), value(value), values(values), file(file) {}
 
   public:
     friend bool operator==(const BandReading& lhs, const BandReading& rhs) = default;
@@ -69,7 +70,8 @@ namespace margelo::nitro {
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "unit"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "timestamp"))),
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "value"))),
-        JSIConverter<std::optional<std::unordered_map<std::string, double>>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "values")))
+        JSIConverter<std::optional<std::unordered_map<std::string, double>>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "values"))),
+        JSIConverter<std::optional<std::string>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "file")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::alibandsdk::BandReading& arg) {
@@ -79,6 +81,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "timestamp"), JSIConverter<double>::toJSI(runtime, arg.timestamp));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "value"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.value));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "values"), JSIConverter<std::optional<std::unordered_map<std::string, double>>>::toJSI(runtime, arg.values));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "file"), JSIConverter<std::optional<std::string>>::toJSI(runtime, arg.file));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -94,6 +97,7 @@ namespace margelo::nitro {
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "timestamp")))) return false;
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "value")))) return false;
       if (!JSIConverter<std::optional<std::unordered_map<std::string, double>>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "values")))) return false;
+      if (!JSIConverter<std::optional<std::string>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "file")))) return false;
       return true;
     }
   };

@@ -26,7 +26,10 @@ export const uploadReadings = async (
     for (const [deviceId, deviceReadings] of Object.entries(byDevice)) {
       await getAxiosInstance().post(endpoints.measurementsBatch, {
         deviceId,
-        readings: deviceReadings.map(({deviceId: _id, ...reading}) => reading),
+        // TODO: upload ECG waveform files once the API has a file endpoint, then send the file reference
+        readings: deviceReadings.map(
+          ({deviceId: _id, waveformFile: _file, ...reading}) => reading,
+        ),
       });
       uploaded.push(...deviceReadings.map(reading => reading.clientId));
     }

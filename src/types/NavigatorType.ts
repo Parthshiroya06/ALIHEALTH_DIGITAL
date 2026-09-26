@@ -3,9 +3,9 @@ import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 export type RootStackParamList = {
   SplashScreen: undefined;
   BottomTabBar: undefined;
-  WebViewScreen: {url: string; title?: string};
   LiveReadingsScreen: undefined;
   SyncStatusScreen: undefined;
+  DeviceReportScreen: undefined;
   DebugScreen: undefined;
 };
 export type BottomTabBarParamList = {

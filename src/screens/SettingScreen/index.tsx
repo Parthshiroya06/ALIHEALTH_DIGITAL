@@ -1,6 +1,6 @@
 import React from 'react';
 import {Image, Pressable, ScrollView, Text, View} from 'react-native';
-import {CommonActions, useNavigation, useTheme} from '@react-navigation/native';
+import {useTheme} from '@react-navigation/native';
 import {useDispatch, useSelector} from 'react-redux';
 import DeviceInfo from 'react-native-device-info';
 import {styles} from './style';
@@ -16,7 +16,6 @@ const LANGUAGES = ['en_US', 'fr_FR'];
 
 const SettingScreen = () => {
   const colors = useTheme().colors;
-  const navigation = useNavigation();
   const dispatch = useDispatch();
   const {themeMode, language_code} = useSelector(
     (state: IRootReduxState) => state.userDetails,
@@ -72,24 +71,6 @@ const SettingScreen = () => {
       />
 
       <View style={styles.section}>
-        {row(localize('term_title'), 'ic_terms', () =>
-          // TODO: replace with the ALIHEALTH terms URL
-          navigation.dispatch(
-            CommonActions.navigate('WebViewScreen', {
-              url: 'https://alihealth.example/terms',
-              title: localize('term_title'),
-            }),
-          ),
-        )}
-        {row(localize('policy_title'), 'ic_privacy', () =>
-          // TODO: replace with the ALIHEALTH privacy URL
-          navigation.dispatch(
-            CommonActions.navigate('WebViewScreen', {
-              url: 'https://alihealth.example/privacy',
-              title: localize('policy_title'),
-            }),
-          ),
-        )}
         {row(
           localize('version'),
           'ic_version',

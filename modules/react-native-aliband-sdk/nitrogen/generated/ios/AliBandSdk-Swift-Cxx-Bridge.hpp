@@ -63,6 +63,31 @@ namespace margelo::nitro::alibandsdk::bridge::swift {
     return vector;
   }
   
+  // pragma MARK: std::unordered_map<std::string, std::string>
+  /**
+   * Specialized version of `std::unordered_map<std::string, std::string>`.
+   */
+  using std__unordered_map_std__string__std__string_ = std::unordered_map<std::string, std::string>;
+  inline std::unordered_map<std::string, std::string> create_std__unordered_map_std__string__std__string_(size_t size) noexcept {
+    std::unordered_map<std::string, std::string> map;
+    map.reserve(size);
+    return map;
+  }
+  inline std::vector<std::string> get_std__unordered_map_std__string__std__string__keys(const std__unordered_map_std__string__std__string_& map) noexcept {
+    std::vector<std::string> keys;
+    keys.reserve(map.size());
+    for (const auto& entry : map) {
+      keys.push_back(entry.first);
+    }
+    return keys;
+  }
+  inline std::string get_std__unordered_map_std__string__std__string__value(const std__unordered_map_std__string__std__string_& map, const std::string& key) noexcept {
+    return map.find(key)->second;
+  }
+  inline void emplace_std__unordered_map_std__string__std__string_(std__unordered_map_std__string__std__string_& map, const std::string& key, const std::string& value) noexcept {
+    map.emplace(key, value);
+  }
+  
   // pragma MARK: std::shared_ptr<Promise<BandInfo>>
   /**
    * Specialized version of `std::shared_ptr<Promise<BandInfo>>`.
@@ -276,6 +301,21 @@ namespace margelo::nitro::alibandsdk::bridge::swift {
     return optional.value();
   }
   
+  // pragma MARK: std::optional<std::string>
+  /**
+   * Specialized version of `std::optional<std::string>`.
+   */
+  using std__optional_std__string_ = std::optional<std::string>;
+  inline std::optional<std::string> create_std__optional_std__string_(const std::string& value) noexcept {
+    return std::optional<std::string>(value);
+  }
+  inline bool has_value_std__optional_std__string_(const std::optional<std::string>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::string get_std__optional_std__string_(const std::optional<std::string>& optional) noexcept {
+    return optional.value();
+  }
+  
   // pragma MARK: std::vector<BandReading>
   /**
    * Specialized version of `std::vector<BandReading>`.
@@ -464,6 +504,15 @@ namespace margelo::nitro::alibandsdk::bridge::swift {
   }
   inline Result_std__shared_ptr_Promise_BandBattery___ create_Result_std__shared_ptr_Promise_BandBattery___(const std::exception_ptr& error) noexcept {
     return Result<std::shared_ptr<Promise<BandBattery>>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::string>
+  using Result_std__string_ = Result<std::string>;
+  inline Result_std__string_ create_Result_std__string_(const std::string& value) noexcept {
+    return Result<std::string>::withValue(value);
+  }
+  inline Result_std__string_ create_Result_std__string_(const std::exception_ptr& error) noexcept {
+    return Result<std::string>::withError(error);
   }
   
   // pragma MARK: Result<std::shared_ptr<Promise<std::vector<BandReading>>>>

@@ -6,6 +6,8 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
+import {useTheme} from '@react-navigation/native';
+import {Colors} from '@resources';
 
 const shadow = {
   shadowColor: '#000',
@@ -35,11 +37,17 @@ const SegmentedControl = ({
   tabs = [],
   onChange = () => {},
   currentIndex = 0,
-  segmentedControlBackgroundColor = '#E5E5EA',
-  activeSegmentBackgroundColor = 'white',
-  textColor = 'black',
-  activeTextColor = 'black',
+  segmentedControlBackgroundColor,
+  activeSegmentBackgroundColor,
+  textColor,
+  activeTextColor = Colors.offWhite,
 }: Props) => {
+  // Follows the app theme unless colors are passed in
+  const colors = useTheme().colors;
+  const backgroundColor = segmentedControlBackgroundColor ?? colors.card;
+  const activeBackgroundColor =
+    activeSegmentBackgroundColor ?? colors.DarkSlateBlue;
+  const inactiveTextColor = textColor ?? colors.secondaryText;
   const translateValue = (width - 4) / tabs.length;
   const [tabTranslate] = React.useState(new Animated.Value(0));
 
@@ -57,7 +65,7 @@ const SegmentedControl = ({
     <Animated.View
       style={[
         styles.segmentedControlWrapper,
-        {backgroundColor: segmentedControlBackgroundColor},
+        {backgroundColor, borderColor: colors.border},
       ]}
     >
       <Animated.View
@@ -65,7 +73,7 @@ const SegmentedControl = ({
           styles.activeSegment,
           {
             width: (width - 4) / tabs.length,
-            backgroundColor: activeSegmentBackgroundColor,
+            backgroundColor: activeBackgroundColor,
             transform: [{translateX: tabTranslate}],
           },
         ]}
@@ -83,7 +91,7 @@ const SegmentedControl = ({
               numberOfLines={1}
               style={[
                 styles.textStyles,
-                {color: textColor},
+                {color: inactiveTextColor},
                 isCurrentIndex && {color: activeTextColor},
               ]}
             >
@@ -102,6 +110,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
     width: width,
     paddingVertical: 4,
   },

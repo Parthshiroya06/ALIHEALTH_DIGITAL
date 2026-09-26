@@ -26,7 +26,12 @@ const CommonButton = (props: Props) => {
       {isLoading ? (
         <ActivityIndicator size={25} color={Colors.offWhite} />
       ) : (
-        <Text style={[styles.textStyles, {color: colors.text}, TitleStyle]}>
+        <Text
+          style={[styles.textStyles, {color: colors.text}, TitleStyle]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+        >
           {title}
         </Text>
       )}
@@ -41,6 +46,7 @@ const styles = StyleSheet.create({
     width: responsiveWidth(90),
     height: responsiveHeight(5.5),
     borderRadius: responsiveWidth(2),
+    paddingHorizontal: responsiveWidth(3),
     marginTop: responsiveHeight(1.5),
     //backgroundColor: Colors.blue,
     alignItems: 'center',

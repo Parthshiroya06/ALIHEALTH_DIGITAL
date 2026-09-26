@@ -37,7 +37,8 @@ const CONTINUOUS: MeasurableMetric[] = ['heart_rate', 'spo2'];
 // A band that never answers must not block the command queue
 const COMMAND_TIMEOUT_MS = 20000;
 const CONNECT_TIMEOUT_MS = 45000;
-const HISTORY_TIMEOUT_MS = 150000;
+// Sleep, 5-min data, SpO2 and ECG records are read one after another
+const HISTORY_TIMEOUT_MS = 270000;
 
 const withTimeout = <T>(promise: Promise<T>, ms: number) =>
   new Promise<T>((resolve, reject) => {
@@ -160,6 +161,7 @@ export class HBandAdapter implements WearableAdapter {
       deviceNumber: info.deviceNumber,
       firmwareVersion: info.firmwareVersion,
       watchDays: info.watchDays,
+      sdkFeatures: info.features,
     };
     addDebugLog(
       `[HBand] connected, firmware ${
@@ -193,6 +195,14 @@ export class HBandAdapter implements WearableAdapter {
 
   async getDeviceInfo(): Promise<IDeviceInfo> {
     return this.deviceInfo;
+  }
+
+  getRawResponses() {
+    try {
+      return AliBandSdk?.getRawResponses() ?? null;
+    } catch {
+      return null;
+    }
   }
 
   subscribeRealtime(onReadings: (readings: IHealthReading[]) => void) {
@@ -250,6 +260,7 @@ export class HBandAdapter implements WearableAdapter {
           reading.type as MetricType,
           valueOf(reading) ?? 0,
           reading.timestamp,
+          reading.file,
         ),
       )
       .filter(reading => !since || reading.timestamp > since);
@@ -292,7 +303,9 @@ export class HBandAdapter implements WearableAdapter {
         this.onReadings?.([this.toReading(event.type, value, event.timestamp)]);
       }
     } else if (state === 'done' && value != null) {
-      this.onReadings?.([this.toReading(event.type, value, event.timestamp)]);
+      this.onReadings?.([
+        this.toReading(event.type, value, event.timestamp, event.file),
+      ]);
     }
 
     if (state !== 'measuring' && this.activeMeasurement === event.type) {
@@ -304,6 +317,7 @@ export class HBandAdapter implements WearableAdapter {
     type: MetricType,
     value: ReadingValue,
     timestampMs: number,
+    waveformFile?: string,
   ): IHealthReading {
     const deviceId = this.deviceId ?? 'unknown';
     const timestamp = new Date(timestampMs).toISOString();
@@ -320,6 +334,7 @@ export class HBandAdapter implements WearableAdapter {
       timestamp,
       quality: ESTIMATED.includes(type) ? 'estimated' : 'measured',
       source: 'vendor_sdk',
+      ...(waveformFile ? {waveformFile} : {}),
     };
   }
 }

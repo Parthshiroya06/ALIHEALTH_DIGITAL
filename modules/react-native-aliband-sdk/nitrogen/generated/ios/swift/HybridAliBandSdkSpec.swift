@@ -20,6 +20,7 @@ public protocol HybridAliBandSdkSpec_protocol: HybridObject {
   func stopMeasurement(type: MeasurementType) throws -> Promise<Void>
   func readCurrentSteps() throws -> Promise<BandSteps>
   func readBattery() throws -> Promise<BandBattery>
+  func getRawResponses() throws -> String
   func syncHistory() throws -> Promise<[BandReading]>
   func setOnMeasurement(listener: @escaping (_ event: BandMeasurement) -> Void) throws -> Void
   func setOnConnectionChange(listener: @escaping (_ connected: Bool) -> Void) throws -> Void

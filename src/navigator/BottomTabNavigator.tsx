@@ -45,7 +45,7 @@ const BottomTabNavigator = () => {
                 source={images[icon]}
                 style={[
                   {
-                    tintColor: focused ? colors.DarkSlateBlue : colors.icons,
+                    tintColor: focused ? colors.link : colors.icons,
                   },
                   styles.imageStyle,
                 ]}
@@ -60,7 +60,7 @@ const BottomTabNavigator = () => {
   return (
     <BottomTab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: colors.DarkSlateBlue,
+        tabBarActiveTintColor: colors.link,
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
       }}

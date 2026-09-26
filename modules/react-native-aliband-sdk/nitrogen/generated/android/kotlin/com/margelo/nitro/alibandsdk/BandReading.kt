@@ -32,7 +32,10 @@ data class BandReading(
   val value: Double?,
   @DoNotStrip
   @Keep
-  val values: Map<String, Double>?
+  val values: Map<String, Double>?,
+  @DoNotStrip
+  @Keep
+  val file: String?
 ) {
   /* primary constructor */
 
@@ -44,6 +47,7 @@ data class BandReading(
       && Objects.deepEquals(this.timestamp, other.timestamp)
       && Objects.deepEquals(this.value, other.value)
       && Objects.deepEquals(this.values, other.values)
+      && Objects.deepEquals(this.file, other.file)
   }
 
   override fun hashCode(): Int {
@@ -52,7 +56,8 @@ data class BandReading(
       unit,
       timestamp,
       value,
-      values
+      values,
+      file
     ).contentDeepHashCode()
   }
 
@@ -64,8 +69,8 @@ data class BandReading(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(type: String, unit: String, timestamp: Double, value: Double?, values: Map<String, Double>?): BandReading {
-      return BandReading(type, unit, timestamp, value, values)
+    private fun fromCpp(type: String, unit: String, timestamp: Double, value: Double?, values: Map<String, Double>?, file: String?): BandReading {
+      return BandReading(type, unit, timestamp, value, values, file)
     }
   }
 }

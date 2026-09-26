@@ -31,13 +31,13 @@ namespace margelo::nitro::alibandsdk { struct BandMeasurement; }
 #include <NitroModules/Promise.hpp>
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include "BandProfile.hpp"
 #include "MeasurementType.hpp"
 #include "BandSteps.hpp"
 #include "BandBattery.hpp"
 #include "BandReading.hpp"
 #include <optional>
-#include <unordered_map>
 #include "BandMeasurement.hpp"
 #include <functional>
 
@@ -141,6 +141,14 @@ namespace margelo::nitro::alibandsdk {
     }
     inline std::shared_ptr<Promise<BandBattery>> readBattery() override {
       auto __result = _swiftPart.readBattery();
+      if (__result.hasError()) [[unlikely]] {
+        std::rethrow_exception(__result.error());
+      }
+      auto __value = std::move(__result.value());
+      return __value;
+    }
+    inline std::string getRawResponses() override {
+      auto __result = _swiftPart.getRawResponses();
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

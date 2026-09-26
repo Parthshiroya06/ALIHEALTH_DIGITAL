@@ -43,6 +43,8 @@ namespace margelo::nitro::alibandsdk {
       jni::local_ref<jni::JDouble> value = this->getFieldValue(fieldValue);
       static const auto fieldValues = clazz->getField<jni::JMap<jni::JString, jni::JDouble>>("values");
       jni::local_ref<jni::JMap<jni::JString, jni::JDouble>> values = this->getFieldValue(fieldValues);
+      static const auto fieldFile = clazz->getField<jni::JString>("file");
+      jni::local_ref<jni::JString> file = this->getFieldValue(fieldFile);
       return BandReading(
         type->toStdString(),
         unit->toStdString(),
@@ -55,7 +57,8 @@ namespace margelo::nitro::alibandsdk {
             __map.emplace(__entry.first->toStdString(), __entry.second->value());
           }
           return __map;
-        }()) : std::nullopt
+        }()) : std::nullopt,
+        file != nullptr ? std::make_optional(file->toStdString()) : std::nullopt
       );
     }
 
@@ -65,7 +68,7 @@ namespace margelo::nitro::alibandsdk {
      */
     [[maybe_unused]]
     static jni::local_ref<JBandReading::javaobject> fromCpp(const BandReading& value) {
-      using JSignature = JBandReading(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, double, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JMap<jni::JString, jni::JDouble>>);
+      using JSignature = JBandReading(jni::alias_ref<jni::JString>, jni::alias_ref<jni::JString>, double, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JMap<jni::JString, jni::JDouble>>, jni::alias_ref<jni::JString>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -80,7 +83,8 @@ namespace margelo::nitro::alibandsdk {
             __map->put(jni::make_jstring(__entry.first), jni::JDouble::valueOf(__entry.second));
           }
           return __map;
-        }() : nullptr
+        }() : nullptr,
+        value.file.has_value() ? jni::make_jstring(value.file.value()) : nullptr
       );
     }
   };

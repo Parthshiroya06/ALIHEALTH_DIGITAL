@@ -60,6 +60,10 @@ abstract class HybridAliBandSdkSpec: HybridObject() {
   
   @DoNotStrip
   @Keep
+  abstract fun getRawResponses(): String
+  
+  @DoNotStrip
+  @Keep
   abstract fun syncHistory(): Promise<Array<BandReading>>
   
   abstract fun setOnMeasurement(listener: (event: BandMeasurement) -> Unit): Unit

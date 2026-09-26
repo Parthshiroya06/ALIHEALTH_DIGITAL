@@ -61,6 +61,7 @@ namespace margelo::nitro::alibandsdk {
     std::shared_ptr<Promise<void>> stopMeasurement(MeasurementType type) override;
     std::shared_ptr<Promise<BandSteps>> readCurrentSteps() override;
     std::shared_ptr<Promise<BandBattery>> readBattery() override;
+    std::string getRawResponses() override;
     std::shared_ptr<Promise<std::vector<BandReading>>> syncHistory() override;
     void setOnMeasurement(const std::function<void(const BandMeasurement& /* event */)>& listener) override;
     void setOnConnectionChange(const std::function<void(bool /* connected */)>& listener) override;

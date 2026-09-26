@@ -4,8 +4,6 @@ export const images = {
   ic_setting: require('./tabIcon/ic_setting.png'),
 
   //Settings Icons
-  ic_privacy: require('./settingsIcons/ic_privacy.png'),
-  ic_terms: require('./settingsIcons/ic_terms.png'),
   ic_version: require('./settingsIcons/ic_version.png'),
 };
 

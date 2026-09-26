@@ -11,6 +11,7 @@
 #include "BandInfo.hpp"
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace margelo::nitro::alibandsdk {
@@ -40,6 +41,8 @@ namespace margelo::nitro::alibandsdk {
       double watchDays = this->getFieldValue(fieldWatchDays);
       static const auto fieldCapabilities = clazz->getField<jni::JArrayClass<jni::JString>>("capabilities");
       jni::local_ref<jni::JArrayClass<jni::JString>> capabilities = this->getFieldValue(fieldCapabilities);
+      static const auto fieldFeatures = clazz->getField<jni::JMap<jni::JString, jni::JString>>("features");
+      jni::local_ref<jni::JMap<jni::JString, jni::JString>> features = this->getFieldValue(fieldFeatures);
       return BandInfo(
         deviceNumber,
         firmwareVersion->toStdString(),
@@ -53,7 +56,15 @@ namespace margelo::nitro::alibandsdk {
             __vector.push_back(__element->toStdString());
           }
           return __vector;
-        }(capabilities)
+        }(capabilities),
+        [&]() {
+          std::unordered_map<std::string, std::string> __map;
+          __map.reserve(features->size());
+          for (const auto& __entry : *features) {
+            __map.emplace(__entry.first->toStdString(), __entry.second->toStdString());
+          }
+          return __map;
+        }()
       );
     }
 
@@ -63,7 +74,7 @@ namespace margelo::nitro::alibandsdk {
      */
     [[maybe_unused]]
     static jni::local_ref<JBandInfo::javaobject> fromCpp(const BandInfo& value) {
-      using JSignature = JBandInfo(double, jni::alias_ref<jni::JString>, double, jni::alias_ref<jni::JArrayClass<jni::JString>>);
+      using JSignature = JBandInfo(double, jni::alias_ref<jni::JString>, double, jni::alias_ref<jni::JArrayClass<jni::JString>>, jni::alias_ref<jni::JMap<jni::JString, jni::JString>>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -80,7 +91,14 @@ namespace margelo::nitro::alibandsdk {
             __array->setElement(__i, *__elementJni);
           }
           return __array;
-        }(value.capabilities)
+        }(value.capabilities),
+        [&]() -> jni::local_ref<jni::JMap<jni::JString, jni::JString>> {
+          auto __map = jni::JHashMap<jni::JString, jni::JString>::create(value.features.size());
+          for (const auto& __entry : value.features) {
+            __map->put(jni::make_jstring(__entry.first), jni::make_jstring(__entry.second));
+          }
+          return __map;
+        }()
       );
     }
   };

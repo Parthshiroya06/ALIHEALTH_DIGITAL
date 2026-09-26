@@ -18,13 +18,19 @@ public extension BandInfo {
   /**
    * Create a new instance of `BandInfo`.
    */
-  init(deviceNumber: Double, firmwareVersion: String, watchDays: Double, capabilities: [String]) {
+  init(deviceNumber: Double, firmwareVersion: String, watchDays: Double, capabilities: [String], features: Dictionary<String, String>) {
     self.init(deviceNumber, std.string(firmwareVersion), watchDays, { () -> bridge.std__vector_std__string_ in
       var __vector = bridge.create_std__vector_std__string_(capabilities.count)
       for __item in capabilities {
         __vector.push_back(std.string(__item))
       }
       return __vector
+    }(), { () -> bridge.std__unordered_map_std__string__std__string_ in
+      var __map = bridge.create_std__unordered_map_std__string__std__string_(features.count)
+      for (__k, __v) in features {
+        bridge.emplace_std__unordered_map_std__string__std__string_(&__map, std.string(__k), std.string(__v))
+      }
+      return __map
     }())
   }
 
@@ -46,5 +52,18 @@ public extension BandInfo {
   @inline(__always)
   var capabilities: [String] {
     return self.__capabilities.map({ __item in String(__item) })
+  }
+  
+  @inline(__always)
+  var features: Dictionary<String, String> {
+    return { () -> Dictionary<String, String> in
+      var __dictionary = Dictionary<String, String>(minimumCapacity: self.__features.size())
+      let __keys = bridge.get_std__unordered_map_std__string__std__string__keys(self.__features)
+      for __key in __keys {
+        let __value = bridge.get_std__unordered_map_std__string__std__string__value(self.__features, __key)
+        __dictionary[String(__key)] = String(__value)
+      }
+      return __dictionary
+    }()
   }
 }

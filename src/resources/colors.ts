@@ -36,6 +36,8 @@ export const CombinedLightTheme = {
     card: Colors.lightprimary,
     border: Colors.lightGrey,
     darktertiary1: '#DCE3E5',
+    // Text links / active tab: readable on the card and tab bar colours
+    link: Colors.DarkSlateBlue,
     blackTransparency: 'rgba(0,0,0,0.5)',
   },
 };
@@ -52,6 +54,7 @@ export const CombinedDarkTheme = {
     secondaryText: Colors.grey,
     icons: Colors.offWhite,
     darktertiary1: '#202629',
+    link: '#A99BFF',
     blackTransparency: 'rgba(100, 107, 110, 0.5) ',
   },
 };

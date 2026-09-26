@@ -29,7 +29,10 @@ data class BandInfo(
   val watchDays: Double,
   @DoNotStrip
   @Keep
-  val capabilities: Array<String>
+  val capabilities: Array<String>,
+  @DoNotStrip
+  @Keep
+  val features: Map<String, String>
 ) {
   /* primary constructor */
 
@@ -40,6 +43,7 @@ data class BandInfo(
       && Objects.deepEquals(this.firmwareVersion, other.firmwareVersion)
       && Objects.deepEquals(this.watchDays, other.watchDays)
       && Objects.deepEquals(this.capabilities, other.capabilities)
+      && Objects.deepEquals(this.features, other.features)
   }
 
   override fun hashCode(): Int {
@@ -47,7 +51,8 @@ data class BandInfo(
       deviceNumber,
       firmwareVersion,
       watchDays,
-      capabilities
+      capabilities,
+      features
     ).contentDeepHashCode()
   }
 
@@ -59,8 +64,8 @@ data class BandInfo(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(deviceNumber: Double, firmwareVersion: String, watchDays: Double, capabilities: Array<String>): BandInfo {
-      return BandInfo(deviceNumber, firmwareVersion, watchDays, capabilities)
+    private fun fromCpp(deviceNumber: Double, firmwareVersion: String, watchDays: Double, capabilities: Array<String>, features: Map<String, String>): BandInfo {
+      return BandInfo(deviceNumber, firmwareVersion, watchDays, capabilities, features)
     }
   }
 }

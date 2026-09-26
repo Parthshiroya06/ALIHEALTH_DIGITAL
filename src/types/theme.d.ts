@@ -7,6 +7,7 @@ declare module '@react-navigation/native' {
       icons: string;
       secondaryText: string;
       darktertiary1: string;
+      link: string;
       DarkSlateBlue: string;
       offWhite: string;
       blue: string;

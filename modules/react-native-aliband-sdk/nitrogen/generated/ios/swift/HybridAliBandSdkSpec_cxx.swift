@@ -251,6 +251,18 @@ open class HybridAliBandSdkSpec_cxx {
   }
   
   @inline(__always)
+  public final func getRawResponses() -> bridge.Result_std__string_ {
+    do {
+      let __result = try self.__implementation.getRawResponses()
+      let __resultCpp = std.string(__result)
+      return bridge.create_Result_std__string_(__resultCpp)
+    } catch (let __error) {
+      let __exceptionPtr = __error.toCpp()
+      return bridge.create_Result_std__string_(__exceptionPtr)
+    }
+  }
+  
+  @inline(__always)
   public final func syncHistory() -> bridge.Result_std__shared_ptr_Promise_std__vector_BandReading____ {
     do {
       let __result = try self.__implementation.syncHistory()

@@ -18,7 +18,7 @@ public extension BandReading {
   /**
    * Create a new instance of `BandReading`.
    */
-  init(type: String, unit: String, timestamp: Double, value: Double?, values: Dictionary<String, Double>?) {
+  init(type: String, unit: String, timestamp: Double, value: Double?, values: Dictionary<String, Double>?, file: String?) {
     self.init(std.string(type), std.string(unit), timestamp, { () -> bridge.std__optional_double_ in
       if let __unwrappedValue = value {
         return bridge.create_std__optional_double_(__unwrappedValue)
@@ -34,6 +34,12 @@ public extension BandReading {
           }
           return __map
         }())
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_std__string_ in
+      if let __unwrappedValue = file {
+        return bridge.create_std__optional_std__string_(std.string(__unwrappedValue))
       } else {
         return .init()
       }
@@ -81,6 +87,18 @@ public extension BandReading {
           }
           return __dictionary
         }()
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var file: String? {
+    return { () -> String? in
+      if bridge.has_value_std__optional_std__string_(self.__file) {
+        let __unwrapped = bridge.get_std__optional_std__string_(self.__file)
+        return String(__unwrapped)
       } else {
         return nil
       }
